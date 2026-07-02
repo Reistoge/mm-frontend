@@ -1,8 +1,9 @@
 import { Component, Input, Output, EventEmitter, HostListener, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GraphNode } from '../../types/graph.types';
+import { GraphNode, EdgeMetadata } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
 import { GraphTreeModalComponent } from '../graph-tree-modal/graph-tree-modal.component';
+import { EdgePopupComponent } from '../edge-popup/edge-popup.component';
 
 export interface LegendItem {
   colorClass: string;
@@ -12,7 +13,7 @@ export interface LegendItem {
 @Component({
   selector: 'app-graph-wrapper',
   standalone: true,
-  imports: [CommonModule, GraphTreeModalComponent],
+  imports: [CommonModule, GraphTreeModalComponent, EdgePopupComponent],
   templateUrl: './graph-wrapper.component.html',
 })
 export class GraphWrapperComponent implements OnDestroy {
@@ -24,8 +25,10 @@ export class GraphWrapperComponent implements OnDestroy {
   @Input() showTreeModal = false;
   @Input() allNodes: GraphNode[] = [];
   @Input() hiddenNodes = new Set<string>();
+  @Input() edgePopupData: { metadata: EdgeMetadata; position: { x: number; y: number } } | null = null;
 
   @Output() separationChange = new EventEmitter<number>();
+  @Output() closeEdgePopup = new EventEmitter<void>();
   @Output() expandAll = new EventEmitter<void>();
   @Output() collapseAll = new EventEmitter<void>();
   @Output() downloadSVG = new EventEmitter<void>();

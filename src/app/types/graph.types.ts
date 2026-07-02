@@ -80,6 +80,19 @@ export interface GraphLink {
 }
 
 /**
+ * Edge metadata for popup display
+ */
+export interface EdgeMetadata {
+  sourceName: string;
+  targetName: string;
+  linkType: LinkType;
+  direction?: LinkDirection;
+  value: number;
+  couplingValue?: number;
+  level?: 'file' | 'module';
+}
+
+/**
  * Complete hierarchical graph data structure
  */
 export interface HierarchicalData {

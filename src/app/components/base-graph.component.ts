@@ -9,7 +9,7 @@ import { Component, ElementRef, Input, Output, EventEmitter, OnInit, OnDestroy, 
 import * as d3 from 'd3';
 import { D3_CONFIG, D3ColorUtils } from '../config/d3-config';
 import { GraphDataService } from '../services/graph-data.service';
-import { NodeType, GraphNode, GraphLink } from '../types/graph.types';
+import { NodeType, GraphNode, GraphLink, EdgeMetadata, LinkType } from '../types/graph.types';
 import { downloadSvg, downloadPng } from './common/component.utils';
  
 /**
@@ -89,6 +89,8 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   loading = signal(true);
   error = signal<string | null>(null);
   separation = signal(1);
+  readonly edgePopup = signal<{ metadata: EdgeMetadata; position: { x: number; y: number } } | null>(null);
+  private popupLink: RenderLink | null = null;
 
   // Internal state
   protected allNodesMap = new Map<string, GraphNode>();
@@ -107,6 +109,9 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
   // D3 objects
   protected simulation: any;
+
+  /** Tracks which original GraphLinks contributed to each rendered aggregated link */
+  protected linkToOriginals = new Map<string, GraphLink[]>();
   protected svg: any;
   protected width = D3_CONFIG.VIEWPORT.DEFAULT_WIDTH;
   protected height = D3_CONFIG.VIEWPORT.DEFAULT_HEIGHT;
@@ -209,8 +214,19 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     // Add zoom behavior
     this.svg.call(d3.zoom()
       .scaleExtent([D3_CONFIG.ZOOM.MIN, D3_CONFIG.ZOOM.MAX])
-      .on('zoom', (e: any) => zoomLayer.attr('transform', e.transform))
+      .on('zoom', (e: any) => {
+        zoomLayer.attr('transform', e.transform);
+        this.updatePopupPosition();
+      })
     );
+
+    // Close edge popup when clicking on graph background
+    zoomLayer.on('click', (e: MouseEvent) => {
+      if (e.target === zoomLayer.node()) {
+        this.edgePopup.set(null);
+        this.popupLink = null;
+      }
+    });
 
     // Create rendering layers
     const gEnclosures = zoomLayer.append('g').attr('class', 'enclosures');
@@ -236,6 +252,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       this.updateLinksForView(gLinks);
       this.updateNodes(gNodes);
       this.drawEnclosures(gEnclosures, this.currentEnclosures);
+      this.updatePopupPosition();
     });
   }
 
@@ -249,16 +266,19 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const linkEnter = linkGroups.enter().append('g').attr('class', 'link');
 
     linkEnter.append('line');
-    linkEnter.append('text')
+    const textEnter = linkEnter.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '-4')
       .style('font-size', '9px')
       .style('font-weight', 'bold')
       .style('fill', '#ef4444')
-      .style('pointer-events', 'none')
+      .style('cursor', 'pointer')
       .style('paint-order', 'stroke')
       .style('stroke', '#ffffff')
-      .style('stroke-width', '2px');
+      .style('stroke-width', '2px')
+      .on('click', (event: MouseEvent, d: RenderLink) => {
+        this.handleEdgeClick(event, d);
+      });
 
     const merged = linkGroups.merge(linkEnter);
 
@@ -436,6 +456,8 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const visibleNodeMap = new Map(this.nodes.map(n => [n.id, n]));
     const newLinks = new Map<string, RenderLink>();
 
+    this.linkToOriginals = new Map();
+
     // Determine view level: when only DIRECTORY nodes are visible,
     // show deduplicated module-level links. Once any non-directory
     // (FILE/CLASS/FUNCTION) appears, show file-level links.
@@ -472,6 +494,11 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
         } else {
           newLinks.get(key)!.value += l.value;
         }
+
+        if (!this.linkToOriginals.has(key)) {
+          this.linkToOriginals.set(key, []);
+        }
+        this.linkToOriginals.get(key)!.push(l);
       }
     });
 
@@ -509,6 +536,9 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Expands a node by replacing it with its children at the same position.
    */
   protected handleNodeClick(event: MouseEvent, node: RenderNode) {
+    this.edgePopup.set(null);
+    this.popupLink = null;
+
     const original = this.allNodesMap.get(node.id);
     if (!original || !original.children || original.children.length === 0) return;
 
@@ -543,10 +573,74 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Rebuilds links and restarts the simulation with updated node/link data.
    */
   protected updateSimulationState() {
+    this.edgePopup.set(null);
+    this.popupLink = null;
     this.rebuildLinks();
     this.simulation.nodes(this.nodes);
     this.simulation.force('link').links(this.links);
     this.simulation.alpha(0.8).restart();
+  }
+
+  /**
+   * Recalculates the popup position from the link midpoint using SVG zoom/pan transform.
+   */
+  private updatePopupPosition(): void {
+    const current = this.edgePopup();
+    if (!current || !this.popupLink) return;
+    const link = this.popupLink;
+
+    const src = link.source as RenderNode;
+    const tgt = link.target as RenderNode;
+    const midX = (src.x! + tgt.x!) / 2;
+    const midY = (src.y! + tgt.y!) / 2;
+
+    const svgEl = this.svg.node() as SVGSVGElement;
+    const zoomLayerEl = svgEl.querySelector('.zoom-layer') as SVGGraphicsElement;
+    if (!zoomLayerEl) return;
+
+    const ctm = zoomLayerEl.getScreenCTM();
+    if (!ctm) return;
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = midX;
+    pt.y = midY;
+    const screenPt = pt.matrixTransform(ctm);
+
+    this.edgePopup.set({
+      metadata: current.metadata,
+      position: { x: screenPt.x, y: screenPt.y - 8 },
+    });
+  }
+
+  /**
+   * Handles edge number click — toggles popup with aggregated edge metadata.
+   */
+  private handleEdgeClick(event: MouseEvent, link: RenderLink): void {
+    const key = `${(link.source as RenderNode).id}-${link.type}-${(link.target as RenderNode).id}`;
+    const originals = this.linkToOriginals.get(key) || [];
+
+    const sourceNode = this.allNodesMap.get((link.source as RenderNode).id);
+    const targetNode = this.allNodesMap.get((link.target as RenderNode).id);
+
+    const metadata: EdgeMetadata = {
+      sourceName: sourceNode?.label || (link.source as RenderNode).id,
+      targetName: targetNode?.label || (link.target as RenderNode).id,
+      linkType: link.type as LinkType,
+      value: link.value,
+      couplingValue: originals.reduce((sum, l) => sum + (l.couplingValue ?? 0), 0),
+      direction: originals.find(l => l.direction)?.direction,
+      level: originals.find(l => l.level)?.level,
+    };
+
+    const current = this.edgePopup();
+    if (current && current.metadata.sourceName === metadata.sourceName && current.metadata.targetName === metadata.targetName) {
+      this.edgePopup.set(null);
+      this.popupLink = null;
+    } else {
+      this.popupLink = link;
+      this.edgePopup.set({ metadata, position: { x: event.clientX, y: event.clientY } });
+      this.updatePopupPosition();
+    }
   }
 
   /**

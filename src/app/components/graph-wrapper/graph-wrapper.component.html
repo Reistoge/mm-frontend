@@ -105,3 +105,10 @@
   (nodeSelected)="treeNodeSelected.emit($event)"
   (close)="closeTreeModal.emit()">
 </app-graph-tree-modal>
+
+<app-edge-popup
+  *ngIf="edgePopupData"
+  [metadata]="edgePopupData.metadata"
+  [position]="edgePopupData.position"
+  (click)="closeEdgePopup.emit()">
+</app-edge-popup>

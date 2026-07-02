@@ -91,6 +91,8 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
     const visibleNodeMap = new Map(this.nodes.map(n => [n.id, n]));
     const newLinks = new Map<string, any>();
 
+    this.linkToOriginals = new Map();
+
     // Determine view level: when only DIRECTORY nodes are visible,
     // show deduplicated module-level links. Once any non-directory
     // (FILE/CLASS/FUNCTION) appears, show file-level links.
@@ -126,6 +128,11 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
         } else {
           newLinks.get(key)!.value += isModuleView ? l.value : (couplingValue || l.value || 1);
         }
+
+        if (!this.linkToOriginals.has(key)) {
+          this.linkToOriginals.set(key, []);
+        }
+        this.linkToOriginals.get(key)!.push(l);
       }
     });
 

@@ -6,6 +6,8 @@
   [showTreeModal]="showTreeModal()"
   [allNodes]="allNodes"
   [hiddenNodes]="hiddenNodes()"
+  [edgePopupData]="edgePopup()"
+  (closeEdgePopup)="edgePopup.set(null)"
   (separationChange)="separation.set($event); updateSeparation($event)"
   (expandAll)="expandAll()"
   (collapseAll)="collapseAll()"
