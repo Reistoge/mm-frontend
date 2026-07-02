@@ -136,6 +136,51 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
       }
     });
 
-    this.links = Array.from(newLinks.values());
+    // Merge bidirectional pairs (A→B + B→A) into single rendered edges
+    const processedKeys = new Set<string>();
+    const mergedLinks: any[] = [];
+
+    for (const link of newLinks.values()) {
+      const key = `${(link.source as any).id}-${link.type}-${(link.target as any).id}`;
+      if (processedKeys.has(key)) continue;
+      processedKeys.add(key);
+
+      const srcId = (link.source as any).id;
+      const tgtId = (link.target as any).id;
+      const reverseKey = `${tgtId}-${link.type}-${srcId}`;
+
+      if (newLinks.has(reverseKey) && key !== reverseKey) {
+        processedKeys.add(reverseKey);
+        const reverseLink = newLinks.get(reverseKey)!;
+
+        if (srcId < tgtId) {
+          link.value += reverseLink.value;
+          link.bidirectional = true;
+
+          const reverseOriginals = this.linkToOriginals.get(reverseKey);
+          if (reverseOriginals) {
+            const originals = this.linkToOriginals.get(key)!;
+            originals.push(...reverseOriginals);
+          }
+
+          mergedLinks.push(link);
+        } else {
+          reverseLink.value += link.value;
+          reverseLink.bidirectional = true;
+
+          const currentOriginals = this.linkToOriginals.get(key);
+          if (currentOriginals) {
+            const originals = this.linkToOriginals.get(reverseKey)!;
+            originals.push(...currentOriginals);
+          }
+
+          mergedLinks.push(reverseLink);
+        }
+      } else {
+        mergedLinks.push(link);
+      }
+    }
+
+    this.links = mergedLinks;
   }
 }

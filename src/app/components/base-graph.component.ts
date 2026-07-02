@@ -33,6 +33,7 @@ export interface RenderLink extends d3.SimulationLinkDatum<RenderNode> {
   target: RenderNode;
   value: number;
   type: string;
+  bidirectional?: boolean;
 }
 
 /**
@@ -285,7 +286,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     merged.select('line')
       .attr('stroke', (d: any) => this.getLinkColor(d.value))
       .attr('stroke-opacity', D3_CONFIG.LINK.OPACITY)
-      .attr('marker-end', (d: any) => `url(#arrowhead-${this.getLinkColor(d.value).replace('#', '')})`)
+      .attr('marker-end', (d: any) => (d as any).bidirectional ? null : `url(#arrowhead-${this.getLinkColor(d.value).replace('#', '')})`)
       .attr('x1', (d: any) => d.source.x)
       .attr('y1', (d: any) => d.source.y)
       .attr('x2', (d: any) => this.shortenLine(d.source, d.target).x)
@@ -502,7 +503,52 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       }
     });
 
-    this.links = Array.from(newLinks.values());
+    // Merge bidirectional pairs (A→B + B→A) into single rendered edges
+    const processedKeys = new Set<string>();
+    const mergedLinks: RenderLink[] = [];
+
+    for (const link of newLinks.values()) {
+      const key = `${(link.source as RenderNode).id}-${link.type}-${(link.target as RenderNode).id}`;
+      if (processedKeys.has(key)) continue;
+      processedKeys.add(key);
+
+      const srcId = (link.source as RenderNode).id;
+      const tgtId = (link.target as RenderNode).id;
+      const reverseKey = `${tgtId}-${link.type}-${srcId}`;
+
+      if (newLinks.has(reverseKey) && key !== reverseKey) {
+        processedKeys.add(reverseKey);
+        const reverseLink = newLinks.get(reverseKey)!;
+
+        if (srcId < tgtId) {
+          link.value += reverseLink.value;
+          link.bidirectional = true;
+
+          const reverseOriginals = this.linkToOriginals.get(reverseKey);
+          if (reverseOriginals) {
+            const originals = this.linkToOriginals.get(key)!;
+            originals.push(...reverseOriginals);
+          }
+
+          mergedLinks.push(link);
+        } else {
+          reverseLink.value += link.value;
+          reverseLink.bidirectional = true;
+
+          const currentOriginals = this.linkToOriginals.get(key);
+          if (currentOriginals) {
+            const originals = this.linkToOriginals.get(reverseKey)!;
+            originals.push(...currentOriginals);
+          }
+
+          mergedLinks.push(reverseLink);
+        }
+      } else {
+        mergedLinks.push(link);
+      }
+    }
+
+    this.links = mergedLinks;
   }
 
   /**
@@ -627,10 +673,20 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       targetName: targetNode?.label || (link.target as RenderNode).id,
       linkType: link.type as LinkType,
       value: link.value,
-      couplingValue: originals.reduce((sum, l) => sum + (l.couplingValue ?? 0), 0),
-      direction: originals.find(l => l.direction)?.direction,
       level: originals.find(l => l.level)?.level,
     };
+
+    if (link.bidirectional) {
+      metadata.bidirectional = true;
+      const sourceId = (link.source as RenderNode).id;
+      const targetId = (link.target as RenderNode).id;
+      metadata.forwardValue = originals
+        .filter(l => l.source === sourceId && l.target === targetId)
+        .reduce((sum, l) => sum + l.value, 0);
+      metadata.reverseValue = originals
+        .filter(l => l.source === targetId && l.target === sourceId)
+        .reduce((sum, l) => sum + l.value, 0);
+    }
 
     const current = this.edgePopup();
     if (current && current.metadata.sourceName === metadata.sourceName && current.metadata.targetName === metadata.targetName) {

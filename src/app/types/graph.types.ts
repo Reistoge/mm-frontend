@@ -72,9 +72,6 @@ export interface GraphLink {
   /** Actual fan-out count from metrics */
   fanOut?: number;
 
-  /** Real coupling intensity */
-  couplingValue?: number;
-
   /** Aggregation level: 'file' (default, individual imports) or 'module' (deduplicated by directory) */
   level?: 'file' | 'module';
 }
@@ -86,10 +83,11 @@ export interface EdgeMetadata {
   sourceName: string;
   targetName: string;
   linkType: LinkType;
-  direction?: LinkDirection;
   value: number;
-  couplingValue?: number;
   level?: 'file' | 'module';
+  bidirectional?: boolean;
+  forwardValue?: number;
+  reverseValue?: number;
 }
 
 /**
@@ -138,6 +136,9 @@ export interface RenderLink extends GraphLink {
 
   /** Computed width for rendering */
   width?: number;
+
+  /** Whether this edge represents bidirectional links merged together */
+  bidirectional?: boolean;
 }
 
 /**

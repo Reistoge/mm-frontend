@@ -28,12 +28,14 @@ import { components, spacing } from '../../design-system';
         <span [class]="valueBadge">{{ metadata.value }}</span>
       </div>
 
-      <div *ngIf="metadata.couplingValue !== undefined" [class]="detailRow">
-        <span [class]="detailItem">Coupling: <strong>{{ metadata.couplingValue }}</strong></span>
+      <div *ngIf="metadata.bidirectional" [class]="detailRow">
+        <span [class]="detailItem">Direction: <strong>Bidirectional</strong></span>
       </div>
-
-      <div *ngIf="metadata.direction" [class]="detailRow">
-        <span [class]="detailItem">Direction: <strong>{{ metadata.direction }}</strong></span>
+      <div *ngIf="metadata.bidirectional" [class]="detailRow">
+        <span [class]="detailItem">{{ metadata.sourceName }} → {{ metadata.targetName }}: <strong>{{ metadata.forwardValue }}</strong></span>
+      </div>
+      <div *ngIf="metadata.bidirectional" [class]="detailRow">
+        <span [class]="detailItem">{{ metadata.targetName }} → {{ metadata.sourceName }}: <strong>{{ metadata.reverseValue }}</strong></span>
       </div>
 
       <div *ngIf="metadata.level" [class]="detailRow">
