@@ -3,9 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable, map } from 'rxjs';
 
-/** Placeholder DTO — currently unused; metrics return `any` via getMetric(). */
-interface MetricsDto {}
-
 /**
  * REST client for fetching individual metric data by repo and metric name.
  * Endpoint: GET /metrics/:repoId/:metricName.
@@ -16,13 +13,16 @@ export class MetricsService {
   private base = environment.apiBase;
   private stubs = environment.useStubs;
 
-  getMetric(repoId: string, metricName: string): Observable<any> {
+  getMetric(repoId: string, metricName: string): Observable<unknown> {
     if (this.stubs) {
-      return this.http.get<any>('/json/stub-data.json').pipe(
-        map(data => (data.repos ?? [])[0]?.modularityMetrics?.[metricName])
+      return this.http.get<{ repos?: unknown[] }>('/json/stub-data.json').pipe(
+        map((data) => {
+          const first = (data.repos ?? [])[0] as Record<string, unknown> | undefined;
+          const metrics = first?.['modularityMetrics'] as Record<string, unknown> | undefined;
+          return metrics?.[metricName];
+        }),
       );
     }
-    return this.http.get<any>(`${this.base}/metrics/${repoId}/${metricName}`);
+    return this.http.get<unknown>(`${this.base}/metrics/${repoId}/${metricName}`);
   }
-
 }

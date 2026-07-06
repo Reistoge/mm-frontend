@@ -10,7 +10,7 @@ import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrappe
   standalone: true,
   imports: [CommonModule, GraphWrapperComponent],
   templateUrl: './module-function-graph.component.html',
-  styleUrls: ['./module-function-graph.component.css']
+  styleUrls: ['./module-function-graph.component.css'],
 })
 export class ModuleFunctionGraphComponent extends BaseGraphComponent {
   graphs = graphs;
@@ -45,16 +45,17 @@ export class ModuleFunctionGraphComponent extends BaseGraphComponent {
       DIRECTORY: 35,
       FILE: 20,
       CLASS: 12,
-      FUNCTION: 6
+      FUNCTION: 6,
     };
   }
 
   override filterNodesAndLinks(): void {
     const hidden = this.hiddenNodes();
-    const rootNodes = Array.from(this.allNodesMap.values())
-      .filter(n => !n.parentId && !hidden.has(n.id));
+    const rootNodes = Array.from(this.allNodesMap.values()).filter(
+      (n) => !n.parentId && !hidden.has(n.id),
+    );
 
-    this.nodes = rootNodes.map(n => this.createRenderNode(n));
+    this.nodes = rootNodes.map((n) => this.createRenderNode(n));
     this.rebuildLinks();
   }
 }

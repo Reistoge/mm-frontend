@@ -1,4 +1,12 @@
-import { Component, Input, Output, EventEmitter, HostListener, OnDestroy, signal } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  HostListener,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GraphNode, EdgeMetadata } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
@@ -25,7 +33,8 @@ export class GraphWrapperComponent implements OnDestroy {
   @Input() showTreeModal = false;
   @Input() allNodes: GraphNode[] = [];
   @Input() hiddenNodes = new Set<string>();
-  @Input() edgePopupData: { metadata: EdgeMetadata; position: { x: number; y: number } } | null = null;
+  @Input() edgePopupData: { metadata: EdgeMetadata; position: { x: number; y: number } } | null =
+    null;
 
   @Output() separationChange = new EventEmitter<number>();
   @Output() closeEdgePopup = new EventEmitter<void>();

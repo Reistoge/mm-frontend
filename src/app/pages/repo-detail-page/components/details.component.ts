@@ -17,7 +17,7 @@ export class DetailsComponent {
   @Input() scan: ScanResult | null = null;
   @Input() loading = false;
   @Input() error: string | null = null;
-  @Output() close = new EventEmitter<void>();
+  @Output() closed = new EventEmitter<void>();
   @Output() runScan = new EventEmitter<void>();
   @Output() downloadScanJson = new EventEmitter<void>();
 
@@ -31,13 +31,13 @@ export class DetailsComponent {
   }
 
   getMetricKeys(): string[] {
-    const mm: any = this.scan?.modularityMetrics ?? {};
+    const mm = (this.scan?.modularityMetrics as Record<string, unknown> | undefined) ?? {};
     if (!mm || typeof mm !== 'object') return [];
     return Object.keys(mm);
   }
 
-  getMetricsData(): Record<string, any> {
-    const mm: any = this.scan?.modularityMetrics ?? {};
+  getMetricsData(): Record<string, unknown> {
+    const mm = (this.scan?.modularityMetrics as Record<string, unknown> | undefined) ?? {};
     return mm || {};
   }
 

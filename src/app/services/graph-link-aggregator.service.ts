@@ -1,9 +1,15 @@
 import { Injectable } from '@angular/core';
-import { GraphNode, GraphLink } from '../types/graph.types';
+import {
+  GraphNode,
+  GraphLink,
+  LinkTypeValues,
+  LinkDirectionValues,
+  LinkDirection,
+} from '../types/graph.types';
 
 /**
  * Aggregates coupling/dependency links at different levels of the hierarchy.
- * 
+ *
  * Link building pipeline (in buildAllLinks):
  * 0. File-level DEPENDENCY links  — from file-coupling fanOut (imports)
  * 1. Method-level CALL links      — from class-coupling method fan-out/fan-in
@@ -20,11 +26,11 @@ export class GraphLinkAggregatorService {
    * Pipeline: file deps -> method coupling -> function coupling -> class aggregation -> file aggregation.
    */
   buildAllLinks(
-    data: any,
+    data: Record<string, unknown>,
     nodesMap: Map<string, GraphNode>,
     classToFilesMap: Map<string, string[]>,
     functionToFileMap: Map<string, string>,
-    fileCoupling?: Record<string, { fanIn: string[]; fanOut: string[] }>
+    fileCoupling?: Record<string, { fanIn: string[]; fanOut: string[] }>,
   ): GraphLink[] {
     const links: GraphLink[] = [];
 
@@ -32,16 +38,42 @@ export class GraphLinkAggregatorService {
     this.buildFileDependencies(fileCoupling, nodesMap, links);
 
     // 1. Method-level coupling
-    const methodLinks = new Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>();
+    const methodLinks = new Map<string, { count: number; direction: LinkDirection }>();
     this.buildMethodLevelCoupling(data, nodesMap, classToFilesMap, methodLinks, links);
 
     // 2. Function-level coupling
-    const functionLinks = new Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>();
-    this.buildFunctionLevelCoupling(data.funcCoupling?.result || {}, nodesMap, functionToFileMap, functionLinks, links);
+    const functionLinks = new Map<string, { count: number; direction: LinkDirection }>();
+    this.buildFunctionLevelCoupling(
+      (
+        data['funcCoupling'] as
+          | {
+              result?: Record<
+                string,
+                Record<
+                  string,
+                  { 'fan-out'?: Record<string, number>; 'fan-in'?: Record<string, number> }
+                >
+              >;
+            }
+          | undefined
+      )?.result ?? {},
+      nodesMap,
+      functionToFileMap,
+      functionLinks,
+      links,
+    );
 
     // 3. Class-level aggregation
-    const classLinks = new Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>();
-    this.buildClassLevelCoupling(methodLinks, nodesMap, classLinks, functionLinks, data, classToFilesMap, links);
+    const classLinks = new Map<string, { count: number; direction: LinkDirection }>();
+    this.buildClassLevelCoupling(
+      methodLinks,
+      nodesMap,
+      classLinks,
+      functionLinks,
+      data,
+      classToFilesMap,
+      links,
+    );
 
     // 4. Module-level aggregation (deduplicated by parent directory)
     this.buildModuleLevelCoupling(fileCoupling, nodesMap, links);
@@ -56,19 +88,19 @@ export class GraphLinkAggregatorService {
   private buildFileDependencies(
     fileCoupling: Record<string, { fanIn: string[]; fanOut: string[] }> | undefined,
     nodesMap: Map<string, GraphNode>,
-    links: GraphLink[]
+    links: GraphLink[],
   ) {
     if (!fileCoupling) return;
 
     Object.entries(fileCoupling).forEach(([src, coupling]) => {
       if (!nodesMap.has(src)) return;
-      coupling.fanOut.forEach(target => {
+      coupling.fanOut.forEach((target) => {
         if (nodesMap.has(target) && src !== target) {
           links.push({
             source: src,
             target: target,
             value: 1,
-            type: 'DEPENDENCY'
+            type: LinkTypeValues.DEPENDENCY,
           });
         }
       });
@@ -80,13 +112,15 @@ export class GraphLinkAggregatorService {
    * Normalizes constructor names, maps class names to files, and builds src->target links.
    */
   private buildMethodLevelCoupling(
-    data: any,
+    data: Record<string, unknown>,
     nodesMap: Map<string, GraphNode>,
     classToFilesMap: Map<string, string[]>,
-    methodLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
-    links: GraphLink[]
+    methodLinks: Map<string, { count: number; direction: LinkDirection }>,
+    links: GraphLink[],
   ) {
-    const classesForCoupling = data.classCoupling?.result || {};
+    const classesForCoupling =
+      (data['classCoupling'] as { result?: Record<string, Record<string, unknown[]>> } | undefined)
+        ?.result ?? {};
 
     const normalizeMethodName = (name: string): string => {
       return name === 'constructor' ? '_constructor' : name;
@@ -102,66 +136,81 @@ export class GraphLinkAggregatorService {
       return files[0];
     };
 
-    Object.entries(classesForCoupling).forEach(([file, clsMap]: [string, any]) => {
-      Object.entries(clsMap).forEach(([className, methods]: [string, any]) => {
+    Object.entries(classesForCoupling).forEach(([file, clsMap]) => {
+      Object.entries(clsMap as Record<string, unknown>).forEach(([className, methods]) => {
         if (!Array.isArray(methods)) return;
 
         const classId = `${file}::${className}`;
         if (!nodesMap.has(classId)) return;
 
-        methods.forEach((method: any) => {
-          let methodName = method.key?.name || 'unknown';
+        methods.forEach((method: unknown) => {
+          const methodEntry = method as {
+            key?: { name?: string };
+            'fan-out'?: Record<string, Record<string, number>>;
+            'fan-in'?: Record<string, Record<string, number>>;
+          };
+          const methodName = methodEntry.key?.name || 'unknown';
           const normalizedMethodName = normalizeMethodName(methodName);
           const srcMethodId = `${classId}::${normalizedMethodName}`;
 
           if (!nodesMap.has(srcMethodId)) return;
 
           // Process Fan-Out
-          const fanOut = method['fan-out'] || {};
-          Object.entries(fanOut).forEach(([targetClassName, targetMethods]: [string, any]) => {
+          const fanOut = methodEntry['fan-out'] ?? {};
+          Object.entries(fanOut).forEach(([targetClassName, targetMethods]) => {
             const targetClassFile = findClassFile(targetClassName);
             if (!targetClassFile) return;
 
             const targetClassId = `${targetClassFile}::${targetClassName}`;
             if (!nodesMap.has(targetClassId)) return;
 
-            Object.entries(targetMethods).forEach(([targetMethodName, count]: [string, any]) => {
-              const normalizedTargetName = normalizeMethodName(targetMethodName);
-              const targetMethodId = `${targetClassId}::${normalizedTargetName}`;
+            Object.entries(targetMethods as Record<string, number>).forEach(
+              ([targetMethodName, count]) => {
+                const normalizedTargetName = normalizeMethodName(targetMethodName);
+                const targetMethodId = `${targetClassId}::${normalizedTargetName}`;
 
-              if (!nodesMap.has(targetMethodId) || srcMethodId === targetMethodId) return;
+                if (!nodesMap.has(targetMethodId) || srcMethodId === targetMethodId) return;
 
-              const linkKey = `${srcMethodId}->${targetMethodId}`;
-              const existing = methodLinks.get(linkKey) || { count: 0, direction: 'fan-out' };
-              methodLinks.set(linkKey, {
-                count: existing.count + Number(count),
-                direction: 'fan-out'
-              });
-            });
+                const linkKey = `${srcMethodId}->${targetMethodId}`;
+                const existing = methodLinks.get(linkKey) || {
+                  count: 0,
+                  direction: LinkDirectionValues.FAN_OUT,
+                };
+                methodLinks.set(linkKey, {
+                  count: existing.count + Number(count),
+                  direction: LinkDirectionValues.FAN_OUT,
+                });
+              },
+            );
           });
 
           // Process Fan-In
-          const fanIn = method['fan-in'] || {};
-          Object.entries(fanIn).forEach(([callerClassName, callerMethods]: [string, any]) => {
+          const fanIn = methodEntry['fan-in'] ?? {};
+          Object.entries(fanIn).forEach(([callerClassName, callerMethods]) => {
             const callerClassFile = findClassFile(callerClassName);
             if (!callerClassFile) return;
 
             const callerClassId = `${callerClassFile}::${callerClassName}`;
             if (!nodesMap.has(callerClassId)) return;
 
-            Object.entries(callerMethods).forEach(([callerMethodName, count]: [string, any]) => {
-              const normalizedCallerName = normalizeMethodName(callerMethodName);
-              const callerMethodId = `${callerClassId}::${normalizedCallerName}`;
+            Object.entries(callerMethods as Record<string, number>).forEach(
+              ([callerMethodName, count]) => {
+                const normalizedCallerName = normalizeMethodName(callerMethodName);
+                const callerMethodId = `${callerClassId}::${normalizedCallerName}`;
 
-              if (!nodesMap.has(callerMethodId) || srcMethodId === callerMethodId) return;
+                if (!nodesMap.has(callerMethodId) || srcMethodId === callerMethodId) return;
 
-              const linkKey = `${callerMethodId}->${srcMethodId}`;
-              const existing = methodLinks.get(linkKey) || { count: 0, direction: 'fan-in' };
-              methodLinks.set(linkKey, {
-                count: existing.count + Number(count),
-                direction: 'fan-in'
-              });
-            });
+                const linkKey = `${callerMethodId}->${srcMethodId}`;
+                const existing = methodLinks.get(linkKey) || {
+                  count: 0,
+                  direction: LinkDirectionValues.FAN_IN,
+                };
+                methodLinks.set(linkKey, {
+                  count: existing.count + Number(count),
+                  direction: LinkDirectionValues.FAN_IN,
+                });
+              },
+            );
           });
         });
       });
@@ -174,8 +223,8 @@ export class GraphLinkAggregatorService {
         source: srcId,
         target: targetId,
         value: linkData.count,
-        type: 'CALL',
-        direction: linkData.direction
+        type: LinkTypeValues.CALL,
+        direction: linkData.direction,
       });
     });
   }
@@ -185,20 +234,23 @@ export class GraphLinkAggregatorService {
    * Maps function names to their containing files for cross-file references.
    */
   private buildFunctionLevelCoupling(
-    fnCoupling: any,
+    fnCoupling: Record<
+      string,
+      Record<string, { 'fan-out'?: Record<string, number>; 'fan-in'?: Record<string, number> }>
+    >,
     nodesMap: Map<string, GraphNode>,
     functionToFileMap: Map<string, string>,
-    functionLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
-    links: GraphLink[]
+    functionLinks: Map<string, { count: number; direction: LinkDirection }>,
+    links: GraphLink[],
   ) {
-    Object.entries(fnCoupling).forEach(([srcFile, fnMap]: [string, any]) => {
-      Object.entries(fnMap).forEach(([srcFuncName, details]: [string, any]) => {
+    Object.entries(fnCoupling).forEach(([srcFile, fnMap]) => {
+      Object.entries(fnMap).forEach(([srcFuncName, details]) => {
         const srcFuncId = `${srcFile}::${srcFuncName}`;
         if (!nodesMap.has(srcFuncId)) return;
 
         // Process Fan-Out (srcFunc calls targetFunc)
-        const fanOut = details['fan-out'] || {};
-        Object.entries(fanOut).forEach(([targetFuncName, count]: [string, any]) => {
+        const fanOut = details['fan-out'] ?? {};
+        Object.entries(fanOut).forEach(([targetFuncName, count]) => {
           const targetFile = functionToFileMap.get(targetFuncName);
           if (!targetFile) return;
 
@@ -206,16 +258,19 @@ export class GraphLinkAggregatorService {
           if (!nodesMap.has(targetFuncId) || srcFuncId === targetFuncId) return;
 
           const linkKey = `${srcFuncId}->${targetFuncId}`;
-          const existing = functionLinks.get(linkKey) || { count: 0, direction: 'fan-out' };
+          const existing = functionLinks.get(linkKey) || {
+            count: 0,
+            direction: LinkDirectionValues.FAN_OUT,
+          };
           functionLinks.set(linkKey, {
             count: existing.count + Number(count),
-            direction: 'fan-out'
+            direction: LinkDirectionValues.FAN_OUT,
           });
         });
 
         // Process Fan-In (other functions call srcFunc)
-        const fanIn = details['fan-in'] || {};
-        Object.entries(fanIn).forEach(([callerFuncName, count]: [string, any]) => {
+        const fanIn = details['fan-in'] ?? {};
+        Object.entries(fanIn).forEach(([callerFuncName, count]) => {
           const callerFile = functionToFileMap.get(callerFuncName);
           if (!callerFile) return;
 
@@ -223,10 +278,13 @@ export class GraphLinkAggregatorService {
           if (!nodesMap.has(callerFuncId) || srcFuncId === callerFuncId) return;
 
           const linkKey = `${callerFuncId}->${srcFuncId}`;
-          const existing = functionLinks.get(linkKey) || { count: 0, direction: 'fan-in' };
+          const existing = functionLinks.get(linkKey) || {
+            count: 0,
+            direction: LinkDirectionValues.FAN_IN,
+          };
           functionLinks.set(linkKey, {
             count: existing.count + Number(count),
-            direction: 'fan-in'
+            direction: LinkDirectionValues.FAN_IN,
           });
         });
       });
@@ -239,8 +297,8 @@ export class GraphLinkAggregatorService {
         source: srcId,
         target: targetId,
         value: linkData.count,
-        type: 'CALL',
-        direction: linkData.direction
+        type: LinkTypeValues.CALL,
+        direction: linkData.direction,
       });
     });
   }
@@ -250,13 +308,13 @@ export class GraphLinkAggregatorService {
    * Also adds direct class-coupling metrics from backend. Deduplicates multi-method calls.
    */
   private buildClassLevelCoupling(
-    methodLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
+    methodLinks: Map<string, { count: number; direction: LinkDirection }>,
     nodesMap: Map<string, GraphNode>,
-    classLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
-    functionLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
-    data: any,
+    classLinks: Map<string, { count: number; direction: LinkDirection }>,
+    functionLinks: Map<string, { count: number; direction: LinkDirection }>,
+    data: Record<string, unknown>,
     classToFilesMap: Map<string, string[]>,
-    links: GraphLink[]
+    links: GraphLink[],
   ) {
     const findClassFile = (className: string): string | undefined => {
       const files = classToFilesMap.get(className);
@@ -281,10 +339,13 @@ export class GraphLinkAggregatorService {
 
       if (srcClassId && targetClassId && srcClassId !== targetClassId) {
         const classLinkKey = `${srcClassId}->${targetClassId}`;
-        const existing = classLinks.get(classLinkKey) || { count: 0, direction: linkData.direction };
+        const existing = classLinks.get(classLinkKey) || {
+          count: 0,
+          direction: linkData.direction,
+        };
         classLinks.set(classLinkKey, {
           count: existing.count + linkData.count,
-          direction: linkData.direction
+          direction: linkData.direction,
         });
       }
     });
@@ -297,34 +358,47 @@ export class GraphLinkAggregatorService {
 
       if (!srcFunc || !targetFunc) return;
 
-      let srcClassId = srcFunc.parentId;
-      let targetClassId = targetFunc.parentId;
+      const srcClassId = srcFunc.parentId;
+      const targetClassId = targetFunc.parentId;
 
       const srcClass = nodesMap.get(srcClassId as string);
       const targetClass = nodesMap.get(targetClassId as string);
 
-      if (srcClass?.type === 'CLASS' && targetClass?.type === 'CLASS' && srcClassId !== targetClassId) {
+      if (
+        srcClass?.type === 'CLASS' &&
+        targetClass?.type === 'CLASS' &&
+        srcClassId !== targetClassId
+      ) {
         const classLinkKey = `${srcClassId}->${targetClassId}`;
-        const existing = classLinks.get(classLinkKey) || { count: 0, direction: linkData.direction };
+        const existing = classLinks.get(classLinkKey) || {
+          count: 0,
+          direction: linkData.direction,
+        };
         classLinks.set(classLinkKey, {
           count: existing.count + linkData.count,
-          direction: linkData.direction
+          direction: linkData.direction,
         });
       }
     });
 
     // 3. Add direct class-coupling metric links
-    const clsCoupling = data.classCoupling?.result || {};
-    Object.entries(clsCoupling).forEach(([file, clsMap]: [string, any]) => {
-      Object.entries(clsMap).forEach(([srcClassName, methods]: [string, any]) => {
+    const clsCoupling =
+      (data['classCoupling'] as { result?: Record<string, Record<string, unknown[]>> } | undefined)
+        ?.result ?? {};
+    Object.entries(clsCoupling).forEach(([file, clsMap]) => {
+      Object.entries(clsMap as Record<string, unknown[]>).forEach(([srcClassName, methods]) => {
         if (!Array.isArray(methods)) return;
 
         const srcClassId = `${file}::${srcClassName}`;
         if (!nodesMap.has(srcClassId)) return;
 
-        methods.forEach((method: any) => {
-          const fanOut = method['fan-out'] || {};
-          Object.entries(fanOut).forEach(([targetClassName, targetMethods]: [string, any]) => {
+        methods.forEach((method: unknown) => {
+          const entry = method as {
+            'fan-out'?: Record<string, Record<string, number>>;
+            'fan-in'?: Record<string, Record<string, number>>;
+          };
+          const fanOut = entry['fan-out'] ?? {};
+          Object.entries(fanOut).forEach(([targetClassName, targetMethods]) => {
             const targetClassFile = findClassFile(targetClassName);
             if (!targetClassFile) return;
 
@@ -332,19 +406,23 @@ export class GraphLinkAggregatorService {
             if (!nodesMap.has(targetClassId) || srcClassId === targetClassId) return;
 
             const classLinkKey = `${srcClassId}->${targetClassId}`;
-            const totalCount = Object.values(targetMethods as any).reduce((sum: number, val: any) =>
-              sum + (typeof val === 'number' ? val : 0), 0
+            const totalCount = Object.values(targetMethods).reduce(
+              (sum: number, val) => sum + (typeof val === 'number' ? val : 0),
+              0,
             );
 
-            const existing = classLinks.get(classLinkKey) || { count: 0, direction: 'fan-out' };
+            const existing = classLinks.get(classLinkKey) || {
+              count: 0,
+              direction: LinkDirectionValues.FAN_OUT,
+            };
             classLinks.set(classLinkKey, {
               count: existing.count + totalCount,
-              direction: 'fan-out'
+              direction: LinkDirectionValues.FAN_OUT,
             });
           });
 
-          const fanIn = method['fan-in'] || {};
-          Object.entries(fanIn).forEach(([callerClassName, callerMethods]: [string, any]) => {
+          const fanIn = entry['fan-in'] ?? {};
+          Object.entries(fanIn).forEach(([callerClassName, callerMethods]) => {
             const callerClassFile = findClassFile(callerClassName);
             if (!callerClassFile) return;
 
@@ -352,14 +430,18 @@ export class GraphLinkAggregatorService {
             if (!nodesMap.has(callerClassId) || srcClassId === callerClassId) return;
 
             const classLinkKey = `${callerClassId}->${srcClassId}`;
-            const totalCount = Object.values(callerMethods as any).reduce((sum: number, val: any) =>
-              sum + (typeof val === 'number' ? val : 0), 0
+            const totalCount = Object.values(callerMethods).reduce(
+              (sum: number, val) => sum + (typeof val === 'number' ? val : 0),
+              0,
             );
 
-            const existing = classLinks.get(classLinkKey) || { count: 0, direction: 'fan-in' };
+            const existing = classLinks.get(classLinkKey) || {
+              count: 0,
+              direction: LinkDirectionValues.FAN_IN,
+            };
             classLinks.set(classLinkKey, {
               count: existing.count + totalCount,
-              direction: 'fan-in'
+              direction: LinkDirectionValues.FAN_IN,
             });
           });
         });
@@ -373,8 +455,8 @@ export class GraphLinkAggregatorService {
         source: srcId,
         target: targetId,
         value: linkData.count,
-        type: 'COUPLING',
-        direction: linkData.direction
+        type: LinkTypeValues.COUPLING,
+        direction: linkData.direction,
       });
     });
   }
@@ -384,12 +466,12 @@ export class GraphLinkAggregatorService {
    * Standalone functions are promoted to their parent file for inter-file links.
    */
   private buildFileLevelCoupling(
-    classLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
+    classLinks: Map<string, { count: number; direction: LinkDirection }>,
     nodesMap: Map<string, GraphNode>,
-    functionLinks: Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>,
-    links: GraphLink[]
+    functionLinks: Map<string, { count: number; direction: LinkDirection }>,
+    links: GraphLink[],
   ) {
-    const fileLinks = new Map<string, { count: number; direction: 'fan-out' | 'fan-in' }>();
+    const fileLinks = new Map<string, { count: number; direction: LinkDirection }>();
 
     // Aggregate class coupling up to FILE level
     classLinks.forEach((linkData, linkKey) => {
@@ -397,7 +479,8 @@ export class GraphLinkAggregatorService {
       const srcClass = nodesMap.get(srcClassId);
       const targetClass = nodesMap.get(targetClassId);
 
-      if (!srcClass || !targetClass || srcClass.type !== 'CLASS' || targetClass.type !== 'CLASS') return;
+      if (!srcClass || !targetClass || srcClass.type !== 'CLASS' || targetClass.type !== 'CLASS')
+        return;
 
       const srcFileId = srcClass.parentId!;
       const targetFileId = targetClass.parentId!;
@@ -407,7 +490,7 @@ export class GraphLinkAggregatorService {
         const existing = fileLinks.get(fileLinkKey) || { count: 0, direction: linkData.direction };
         fileLinks.set(fileLinkKey, {
           count: existing.count + linkData.count,
-          direction: linkData.direction
+          direction: linkData.direction,
         });
       }
     });
@@ -429,10 +512,13 @@ export class GraphLinkAggregatorService {
 
         if (srcFileId !== targetFileId) {
           const fileLinkKey = `${srcFileId}->${targetFileId}`;
-          const existing = fileLinks.get(fileLinkKey) || { count: 0, direction: linkData.direction };
+          const existing = fileLinks.get(fileLinkKey) || {
+            count: 0,
+            direction: linkData.direction,
+          };
           fileLinks.set(fileLinkKey, {
             count: existing.count + linkData.count,
-            direction: linkData.direction
+            direction: linkData.direction,
           });
         }
       }
@@ -445,8 +531,8 @@ export class GraphLinkAggregatorService {
         source: srcId,
         target: targetId,
         value: linkData.count,
-        type: 'COUPLING',
-        direction: linkData.direction
+        type: LinkTypeValues.COUPLING,
+        direction: linkData.direction,
       });
     });
   }
@@ -462,7 +548,7 @@ export class GraphLinkAggregatorService {
   private buildModuleLevelCoupling(
     fileCoupling: Record<string, { fanIn: string[]; fanOut: string[] }> | undefined,
     nodesMap: Map<string, GraphNode>,
-    links: GraphLink[]
+    links: GraphLink[],
   ): void {
     if (!fileCoupling) return;
 
@@ -506,14 +592,14 @@ export class GraphLinkAggregatorService {
     }
 
     // Create one link per unique module pair
-    modulePairs.forEach(pair => {
+    modulePairs.forEach((pair) => {
       const [srcId, targetId] = pair.split('->');
       links.push({
         source: srcId,
         target: targetId,
         value: 1,
-        type: 'DEPENDENCY',
-        level: 'module'
+        type: LinkTypeValues.DEPENDENCY,
+        level: 'module',
       });
     });
   }

@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EdgeMetadata, LinkType } from '../../types/graph.types';
 import { components, spacing } from '../../design-system';
@@ -14,10 +14,20 @@ import { components, spacing } from '../../design-system';
       [style.left.px]="position.x"
       [style.top.px]="position.y"
       [style.transform]="'translate(-50%, -100%)'"
-      (click)="$event.stopPropagation()">
+      (click)="$event.stopPropagation()"
+      (keydown.enter)="$event.stopPropagation()"
+      tabindex="0"
+      role="dialog"
+    >
       <div [class]="flexBetween">
         <span [class]="labelClass">{{ metadata.sourceName }}</span>
-        <svg class="w-4 h-4 text-slate-400 mx-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg
+          class="w-4 h-4 text-slate-400 mx-2 shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
         <span [class]="labelClass">{{ metadata.targetName }}</span>
@@ -28,19 +38,31 @@ import { components, spacing } from '../../design-system';
         <span [class]="valueBadge">{{ metadata.value }}</span>
       </div>
 
-      <div *ngIf="metadata.bidirectional" [class]="detailRow">
-        <span [class]="detailItem">Direction: <strong>Bidirectional</strong></span>
-      </div>
-      <div *ngIf="metadata.bidirectional" [class]="detailRow">
-        <span [class]="detailItem">{{ metadata.sourceName }} → {{ metadata.targetName }}: <strong>{{ metadata.forwardValue }}</strong></span>
-      </div>
-      <div *ngIf="metadata.bidirectional" [class]="detailRow">
-        <span [class]="detailItem">{{ metadata.targetName }} → {{ metadata.sourceName }}: <strong>{{ metadata.reverseValue }}</strong></span>
-      </div>
+      @if (metadata.bidirectional) {
+        <div [class]="detailRow">
+          <span [class]="detailItem">Direction: <strong>Bidirectional</strong></span>
+        </div>
+        <div [class]="detailRow">
+          <span [class]="detailItem"
+            >{{ metadata.sourceName }} → {{ metadata.targetName }}:
+            <strong>{{ metadata.forwardValue }}</strong></span
+          >
+        </div>
+        <div [class]="detailRow">
+          <span [class]="detailItem"
+            >{{ metadata.targetName }} → {{ metadata.sourceName }}:
+            <strong>{{ metadata.reverseValue }}</strong></span
+          >
+        </div>
+      }
 
-      <div *ngIf="metadata.level" [class]="detailRow">
-        <span [class]="detailItem">Level: <strong>{{ metadata.level }}</strong></span>
-      </div>
+      @if (metadata.level) {
+        <div [class]="detailRow">
+          <span [class]="detailItem"
+            >Level: <strong>{{ metadata.level }}</strong></span
+          >
+        </div>
+      }
     </div>
   `,
 })

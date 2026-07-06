@@ -1,9 +1,15 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
-import { BaseGraphComponent, PhysicsConfig, Enclosure } from '../base-graph.component';
+import {
+  BaseGraphComponent,
+  PhysicsConfig,
+  Enclosure,
+  RenderNode,
+  RenderLink,
+} from '../base-graph.component';
 import { D3_CONFIG } from '../../config/d3-config';
-import { NodeType } from '../../types/graph.types';
+import { NodeTypeValues, NodeType } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
 import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrapper.component';
 
@@ -12,7 +18,7 @@ import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrappe
   standalone: true,
   imports: [CommonModule, GraphWrapperComponent],
   templateUrl: './module-class-graph.component.html',
-  styleUrls: ['./module-class-graph.component.css']
+  styleUrls: ['./module-class-graph.component.css'],
 })
 export class ModuleClassGraphComponent extends BaseGraphComponent {
   graphs = graphs;
@@ -47,16 +53,17 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
       DIRECTORY: 35,
       FILE: 20,
       CLASS: 12,
-      FUNCTION: 6
+      FUNCTION: 6,
     };
   }
 
   override filterNodesAndLinks(): void {
     const hidden = this.hiddenNodes();
-    const rootNodes = Array.from(this.allNodesMap.values())
-      .filter(n => !n.parentId && !hidden.has(n.id));
+    const rootNodes = Array.from(this.allNodesMap.values()).filter(
+      (n) => !n.parentId && !hidden.has(n.id),
+    );
 
-    this.nodes = rootNodes.map(n => this.createRenderNode(n));
+    this.nodes = rootNodes.map((n) => this.createRenderNode(n));
     this.rebuildLinks();
   }
 
@@ -64,12 +71,12 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
     const enclosures: Enclosure[] = [];
     const colorScheme = this.getColorScheme();
 
-    this.expandedNodes.forEach(parentId => {
-      const descendants = this.nodes.filter(n => this.isDescendant(n.id, parentId));
+    this.expandedNodes.forEach((parentId) => {
+      const descendants = this.nodes.filter((n) => this.isDescendant(n.id, parentId));
 
       if (descendants.length > 0) {
         const pData = this.allNodesMap.get(parentId);
-        const circle = d3.packEnclose(descendants as any);
+        const circle = d3.packEnclose(descendants as d3.PackCircle[]);
         if (circle) {
           enclosures.push({
             id: parentId,
@@ -77,7 +84,7 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
             y: circle.y,
             r: circle.r + D3_CONFIG.ENCLOSURE.PADDING,
             label: pData?.label || '',
-            color: colorScheme[pData?.type as NodeType] || '#ccc'
+            color: colorScheme[pData?.type as NodeType] || '#ccc',
           });
         }
       }
@@ -87,20 +94,20 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
   }
 
   override rebuildLinks(): void {
-    const visibleNodeIds = new Set(this.nodes.map(n => n.id));
-    const visibleNodeMap = new Map(this.nodes.map(n => [n.id, n]));
-    const newLinks = new Map<string, any>();
+    const visibleNodeIds = new Set(this.nodes.map((n) => n.id));
+    const visibleNodeMap = new Map(this.nodes.map((n) => [n.id, n]));
+    const newLinks = new Map<string, RenderLink>();
 
     this.linkToOriginals = new Map();
 
     // Determine view level: when only DIRECTORY nodes are visible,
     // show deduplicated module-level links. Once any non-directory
     // (FILE/CLASS/FUNCTION) appears, show file-level links.
-    const isModuleView = this.nodes.every(n => n.type === 'DIRECTORY');
+    const isModuleView = this.nodes.every((n) => n.type === NodeTypeValues.DIRECTORY);
 
     const activeLinks = isModuleView
-      ? this.allLinks.filter(l => l.level === 'module')
-      : this.allLinks.filter(l => !l.level || l.level === 'file');
+      ? this.allLinks.filter((l) => l.level === 'module')
+      : this.allLinks.filter((l) => !l.level || l.level === 'file');
 
     const findVisible = (id: string): string | undefined => {
       if (visibleNodeIds.has(id)) return id;
@@ -112,7 +119,7 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
       return undefined;
     };
 
-    activeLinks.forEach(l => {
+    activeLinks.forEach((l) => {
       const sourceId = findVisible(l.source as string);
       const targetId = findVisible(l.target as string);
       if (sourceId && targetId && sourceId !== targetId) {
@@ -122,11 +129,11 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
           newLinks.set(key, {
             source: visibleNodeMap.get(sourceId)!,
             target: visibleNodeMap.get(targetId)!,
-            value: isModuleView ? l.value : (couplingValue || l.value || 1),
-            type: l.type
+            value: isModuleView ? l.value : couplingValue || l.value || 1,
+            type: l.type,
           });
         } else {
-          newLinks.get(key)!.value += isModuleView ? l.value : (couplingValue || l.value || 1);
+          newLinks.get(key)!.value += isModuleView ? l.value : couplingValue || l.value || 1;
         }
 
         if (!this.linkToOriginals.has(key)) {
@@ -138,15 +145,15 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
 
     // Merge bidirectional pairs (A→B + B→A) into single rendered edges
     const processedKeys = new Set<string>();
-    const mergedLinks: any[] = [];
+    const mergedLinks: RenderLink[] = [];
 
     for (const link of newLinks.values()) {
-      const key = `${(link.source as any).id}-${link.type}-${(link.target as any).id}`;
+      const key = `${(link.source as RenderNode).id}-${link.type}-${(link.target as RenderNode).id}`;
       if (processedKeys.has(key)) continue;
       processedKeys.add(key);
 
-      const srcId = (link.source as any).id;
-      const tgtId = (link.target as any).id;
+      const srcId = (link.source as RenderNode).id;
+      const tgtId = (link.target as RenderNode).id;
       const reverseKey = `${tgtId}-${link.type}-${srcId}`;
 
       if (newLinks.has(reverseKey) && key !== reverseKey) {

@@ -2,7 +2,10 @@
   <div [class]="'flex flex-wrap gap-2 items-center'">
     <button
       type="button"
-      [class]="components.button.secondary + (selectedValue() === null ? ' ' + components.button.neutralDark : '')"
+      [class]="
+        components.button.secondary +
+        (selectedValue() === null ? ' ' + components.button.neutralDark : '')
+      "
       [ngClass]="selectedValue() === null ? '' : ''"
       (click)="toggle(null)"
       title="Ocultar reporte seleccionado"
@@ -11,19 +14,17 @@
       Ninguno
     </button>
 
-    <ng-container *ngFor="let it of items">
+    @for (it of items; track it.key) {
       <button
         type="button"
         [class]="components.button.secondary"
-        [ngClass]="selectedValue() === it.key
-          ? 'bg-emerald-600 text-white border-emerald-600'
-          : ''"
+        [ngClass]="selectedValue() === it.key ? 'bg-emerald-600 text-white border-emerald-600' : ''"
         (click)="toggle(it.key)"
         [title]="it.hint || it.label"
         [attr.aria-pressed]="selectedValue() === it.key"
       >
         {{ it.label }}
       </button>
-    </ng-container>
+    }
   </div>
 </div>

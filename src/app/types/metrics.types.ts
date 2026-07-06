@@ -6,29 +6,31 @@
 /**
  * Generic metric data structure (can be nested)
  */
-export type MetricData = Record<string, number | Record<string, any> | any[]>;
+export type MetricData = Record<string, number | Record<string, unknown> | unknown[]>;
 
 /**
  * File-level coupling metrics
  * Backend returns arrays of file paths per file-dependency relationship
  */
-export interface FileCouplingData {
-  [filePath: string]: {
+export type FileCouplingData = Record<
+  string,
+  {
     fanIn: string[];
     fanOut: string[];
-  };
-}
+  }
+>;
 
 /**
  * Class-level coupling metrics
  */
-export interface ClassCouplingData {
-  [className: string]: {
+export type ClassCouplingData = Record<
+  string,
+  {
     methods?: Record<string, MethodCouplingMetrics>;
     fanIn?: number;
     fanOut?: number;
-  };
-}
+  }
+>;
 
 /**
  * Method/function-level coupling metrics
@@ -43,35 +45,30 @@ export interface MethodCouplingMetrics {
 /**
  * Function-level coupling metrics
  */
-export interface FunctionCouplingData {
-  [functionName: string]: MethodCouplingMetrics;
-}
+export type FunctionCouplingData = Record<string, MethodCouplingMetrics>;
 
 /**
  * Files inventory data
  */
-export interface FilesMetric {
-  [filePath: string]: {
+export type FilesMetric = Record<
+  string,
+  {
     extension: string;
     lines?: number;
     functions?: number;
     classes?: number;
-  };
-}
+  }
+>;
 
 /**
  * Classes per file inventory
  */
-export interface ClassesPerFileMetric {
-  [filePath: string]: string[]; // array of class names
-}
+export type ClassesPerFileMetric = Record<string, string[]>;
 
 /**
  * Functions per file inventory
  */
-export interface FunctionsPerFileMetric {
-  [filePath: string]: Record<string, any>; // function names with their data
-}
+export type FunctionsPerFileMetric = Record<string, Record<string, unknown>>;
 
 /**
  * Complete modularity metrics result
@@ -80,10 +77,10 @@ export interface ModularityMetrics {
   'file-coupling'?: FileCouplingData;
   'class-coupling'?: ClassCouplingData;
   'function-coupling'?: FunctionCouplingData;
-  'files'?: FilesMetric;
+  files?: FilesMetric;
   'classes-per-file'?: ClassesPerFileMetric;
   'functions-per-file'?: FunctionsPerFileMetric;
-  'errors'?: Record<string, any>;
+  errors?: Record<string, unknown>;
   [key: string]: MetricData | undefined;
 }
 
@@ -100,13 +97,13 @@ export interface MetricsApiResponse<T = MetricData> {
  * Complete metrics payload from backend
  */
 export interface MetricsPayload {
-  'files': MetricsApiResponse<FilesMetric>;
+  files: MetricsApiResponse<FilesMetric>;
   'classes-per-file': MetricsApiResponse<ClassesPerFileMetric>;
   'functions-per-file': MetricsApiResponse<FunctionsPerFileMetric>;
   'file-coupling': MetricsApiResponse<FileCouplingData>;
   'class-coupling': MetricsApiResponse<ClassCouplingData>;
   'function-coupling': MetricsApiResponse<FunctionCouplingData>;
-  [key: string]: MetricsApiResponse<any>;
+  [key: string]: MetricsApiResponse<unknown>;
 }
 
 /**
@@ -124,8 +121,8 @@ export interface ChartData {
   title?: string;
   categories: string[];
   values: number[];
-  series: Array<{
+  series: {
     name: string;
     data: ChartDataPoint[];
-  }>;
+  }[];
 }

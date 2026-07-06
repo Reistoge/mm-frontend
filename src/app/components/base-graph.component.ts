@@ -5,13 +5,33 @@
  * Subclasses override physics config, colors, radii, and node filtering via abstract methods.
  */
 
-import { Component, ElementRef, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewChild, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+  OnChanges,
+  SimpleChanges,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import * as d3 from 'd3';
 import { D3_CONFIG, D3ColorUtils } from '../config/d3-config';
 import { GraphDataService } from '../services/graph-data.service';
-import { NodeType, GraphNode, GraphLink, EdgeMetadata, LinkType } from '../types/graph.types';
+import {
+  NodeTypeValues,
+  NodeType,
+  GraphNode,
+  GraphLink,
+  EdgeMetadata,
+  LinkType,
+} from '../types/graph.types';
 import { downloadSvg, downloadPng } from './common/component.utils';
- 
+
 /**
  * Render-specific node data (includes D3 simulation data)
  */
@@ -90,7 +110,10 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   loading = signal(true);
   error = signal<string | null>(null);
   separation = signal(1);
-  readonly edgePopup = signal<{ metadata: EdgeMetadata; position: { x: number; y: number } } | null>(null);
+  readonly edgePopup = signal<{
+    metadata: EdgeMetadata;
+    position: { x: number; y: number };
+  } | null>(null);
   private popupLink: RenderLink | null = null;
 
   // Internal state
@@ -109,11 +132,11 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   protected currentEnclosures: Enclosure[] = [];
 
   // D3 objects
-  protected simulation: any;
+  protected simulation: d3.Simulation<RenderNode, RenderLink> | null = null;
 
   /** Tracks which original GraphLinks contributed to each rendered aggregated link */
   protected linkToOriginals = new Map<string, GraphLink[]>();
-  protected svg: any;
+  protected svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   protected width = D3_CONFIG.VIEWPORT.DEFAULT_WIDTH;
   protected height = D3_CONFIG.VIEWPORT.DEFAULT_HEIGHT;
 
@@ -150,7 +173,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     this.loading.set(true);
     this.dataService.loadHierarchy(this.repoId).subscribe({
       next: (data) => {
-        data.nodes.forEach(n => this.allNodesMap.set(n.id, n));
+        data.nodes.forEach((n) => this.allNodesMap.set(n.id, n));
         this.allLinks = data.links;
 
         // Filter/transform nodes and links (subclass-specific)
@@ -164,7 +187,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
         console.error(err);
         this.error.set('Error loading graph data');
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -184,7 +207,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       x: x + (Math.random() - 0.5) * 10,
       y: y + (Math.random() - 0.5) * 10,
       r: radiusScheme[n.type] || 10,
-      color: colorScheme[n.type] || '#999'
+      color: colorScheme[n.type] || '#999',
     };
   }
 
@@ -201,7 +224,9 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     d3.select(el).selectAll('*').remove();
 
     // Create SVG with viewBox for scaling
-    this.svg = d3.select(el).append('svg')
+    this.svg = d3
+      .select(el)
+      .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
       .attr('viewBox', `${-this.width / 2} ${-this.height / 2} ${this.width} ${this.height}`);
@@ -213,12 +238,14 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const zoomLayer = this.svg.append('g').attr('class', 'zoom-layer');
 
     // Add zoom behavior
-    this.svg.call(d3.zoom()
-      .scaleExtent([D3_CONFIG.ZOOM.MIN, D3_CONFIG.ZOOM.MAX])
-      .on('zoom', (e: any) => {
-        zoomLayer.attr('transform', e.transform);
-        this.updatePopupPosition();
-      })
+    this.svg.call(
+      d3
+        .zoom<SVGSVGElement, unknown>()
+        .scaleExtent([D3_CONFIG.ZOOM.MIN, D3_CONFIG.ZOOM.MAX])
+        .on('zoom', (e: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+          zoomLayer.attr('transform', String(e.transform));
+          this.updatePopupPosition();
+        }),
     );
 
     // Close edge popup when clicking on graph background
@@ -237,12 +264,25 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     // Create force simulation
     const config = this.getPhysicsConfig();
 
-    this.simulation = d3.forceSimulation(this.nodes)
+    this.simulation = d3
+      .forceSimulation(this.nodes)
       .force('charge', d3.forceManyBody().strength(config.chargeStrength))
-      .force('link', d3.forceLink(this.links).id((d: any) => d.id).distance(config.linkDistance))
+      .force(
+        'link',
+        d3
+          .forceLink(this.links)
+          .id((d) => (d as RenderNode).id)
+          .distance(config.linkDistance),
+      )
       .force('x', d3.forceX().strength(config.centerStrength))
       .force('y', d3.forceY().strength(config.centerStrength))
-      .force('collide', d3.forceCollide().radius((d: any) => d.r + config.collidePadding).iterations(config.collideIterations))
+      .force(
+        'collide',
+        d3
+          .forceCollide()
+          .radius((d) => (d as RenderNode).r + config.collidePadding)
+          .iterations(config.collideIterations),
+      )
       .force('cluster', this.forceCluster(config.clusterStrength || 0.2))
       .force('enclosure', this.forceEnclosure());
 
@@ -260,14 +300,17 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   /**
    * Renders/updates link lines with color based on coupling intensity and value labels.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateLinksForView(layer: any) {
-    const linkGroups = layer.selectAll('g.link')
-      .data(this.links, (d: any) => `${d.source.id}-${d.type}-${d.target.id}`);
+    const linkGroups = layer
+      .selectAll('g.link')
+      .data(this.links, (d: RenderLink) => `${d.source.id}-${d.type}-${d.target.id}`);
 
     const linkEnter = linkGroups.enter().append('g').attr('class', 'link');
 
     linkEnter.append('line');
-    const textEnter = linkEnter.append('text')
+    linkEnter
+      .append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '-4')
       .style('font-size', '9px')
@@ -283,19 +326,23 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
     const merged = linkGroups.merge(linkEnter);
 
-    merged.select('line')
-      .attr('stroke', (d: any) => this.getLinkColor(d.value))
+    merged
+      .select('line')
+      .attr('stroke', (d: RenderLink) => this.getLinkColor(d.value))
       .attr('stroke-opacity', D3_CONFIG.LINK.OPACITY)
-      .attr('marker-end', (d: any) => (d as any).bidirectional ? null : `url(#arrowhead-${this.getLinkColor(d.value).replace('#', '')})`)
-      .attr('x1', (d: any) => d.source.x)
-      .attr('y1', (d: any) => d.source.y)
-      .attr('x2', (d: any) => this.shortenLine(d.source, d.target).x)
-      .attr('y2', (d: any) => this.shortenLine(d.source, d.target).y);
+      .attr('marker-end', (d: RenderLink) =>
+        d.bidirectional ? null : `url(#arrowhead-${this.getLinkColor(d.value).replace('#', '')})`,
+      )
+      .attr('x1', (d: RenderLink) => d.source.x)
+      .attr('y1', (d: RenderLink) => d.source.y)
+      .attr('x2', (d: RenderLink) => this.shortenLine(d.source, d.target).x)
+      .attr('y2', (d: RenderLink) => this.shortenLine(d.source, d.target).y);
 
-    merged.select('text')
-      .text((d: any) => d.value)
-      .attr('x', (d: any) => (d.source.x + d.target.x) / 2)
-      .attr('y', (d: any) => (d.source.y + d.target.y) / 2);
+    merged
+      .select('text')
+      .text((d: RenderLink) => d.value)
+      .attr('x', (d: RenderLink) => (d.source.x! + d.target.x!) / 2)
+      .attr('y', (d: RenderLink) => (d.source.y! + d.target.y!) / 2);
 
     linkGroups.exit().remove();
   }
@@ -303,42 +350,58 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   /**
    * Renders/updates node circles with labels, drag behavior, and click handler.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateNodes(layer: any) {
-    const nodeSel = layer.selectAll('g.node')
-      .data(this.nodes, (d: any) => d.id);
+    const nodeSel = layer.selectAll('g.node').data(this.nodes, (d: RenderNode) => d.id);
 
-    const nodeEnter = nodeSel.enter().append('g')
+    const nodeEnter = nodeSel
+      .enter()
+      .append('g')
       .attr('class', 'node')
       .style('cursor', 'pointer')
-      .call(d3.drag()
-        .on('start', (e, d: any) => {
-          if (!e.active) this.simulation.alphaTarget(0.3).restart();
-          d.fx = d.x; d.fy = d.y;
-        })
-        .on('drag', (e, d: any) => { d.fx = e.x; d.fy = e.y; })
-        .on('end', (e, d: any) => {
-          if (!e.active) this.simulation.alphaTarget(0);
-          d.fx = null; d.fy = null;
-        })
+      .call(
+        d3
+          .drag()
+          .on('start', (e, d) => {
+            const node = d as RenderNode;
+            if (!e.active) this.simulation!.alphaTarget(0.3).restart();
+            node.fx = node.x;
+            node.fy = node.y;
+          })
+          .on('drag', (e, d) => {
+            const node = d as RenderNode;
+            node.fx = e.x;
+            node.fy = e.y;
+          })
+          .on('end', (e, d) => {
+            const node = d as RenderNode;
+            if (!e.active) this.simulation!.alphaTarget(0);
+            node.fx = null;
+            node.fy = null;
+          }),
       )
-      .on('click', (e: any, d: RenderNode) => this.handleNodeClick(e, d));
+      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d));
 
-    nodeEnter.append('circle')
-      .attr('r', (d: any) => d.r)
-      .attr('fill', (d: any) => d.color)
+    nodeEnter
+      .append('circle')
+      .attr('r', (d: RenderNode) => d.r)
+      .attr('fill', (d: RenderNode) => d.color)
       .attr('stroke', '#fff')
       .attr('stroke-width', D3_CONFIG.NODE.STROKE_WIDTH);
 
-    nodeEnter.append('text')
-      .text((d: any) => d.label)
-      .attr('dy', (d: any) => d.r + 14)
+    nodeEnter
+      .append('text')
+      .text((d: RenderNode) => d.label)
+      .attr('dy', (d: RenderNode) => d.r + 14)
       .attr('text-anchor', 'middle')
       .attr('fill', '#475569')
       .style('font-size', '10px')
       .style('pointer-events', 'none');
 
-    nodeSel.merge(nodeEnter as any)
-      .attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+    nodeSel
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .merge(nodeEnter as any)
+      .attr('transform', (d: RenderNode) => `translate(${d.x},${d.y})`);
 
     nodeSel.exit().remove();
   }
@@ -348,17 +411,21 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    */
   private forceCluster(strength: number) {
     return (alpha: number) => {
-      const groups = d3.group(this.nodes, d => d.parentId);
+      const groups = d3.group(this.nodes, (d) => d.parentId);
       groups.forEach((groupNodes) => {
         if (groupNodes.length <= 1) return;
 
-        let cx = 0, cy = 0;
-        groupNodes.forEach(n => { cx += n.x!; cy += n.y!; });
+        let cx = 0,
+          cy = 0;
+        groupNodes.forEach((n) => {
+          cx += n.x!;
+          cy += n.y!;
+        });
         cx /= groupNodes.length;
         cy /= groupNodes.length;
 
         const k = strength * alpha;
-        groupNodes.forEach(n => {
+        groupNodes.forEach((n) => {
           n.vx! -= (n.x! - cx) * k;
           n.vy! -= (n.y! - cy) * k;
         });
@@ -375,8 +442,8 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       const config = this.getPhysicsConfig();
       this.currentEnclosures = this.calculateEnclosures();
 
-      this.currentEnclosures.forEach(enc => {
-        this.nodes.forEach(node => {
+      this.currentEnclosures.forEach((enc) => {
+        this.nodes.forEach((node) => {
           const isInside = this.isDescendant(node.id, enc.id);
 
           const dx = node.x! - enc.x;
@@ -414,11 +481,12 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const enclosures: Enclosure[] = [];
     const colorScheme = this.getColorScheme();
 
-    this.expandedNodes.forEach(parentId => {
-      const directChildren = this.nodes.filter(n => n.parentId === parentId);
+    this.expandedNodes.forEach((parentId) => {
+      const directChildren = this.nodes.filter((n) => n.parentId === parentId);
 
       if (directChildren.length > 0) {
         const pData = this.allNodesMap.get(parentId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const circle = d3.packEnclose(directChildren as any);
         if (circle) {
           enclosures.push({
@@ -427,7 +495,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
             y: circle.y,
             r: circle.r + D3_CONFIG.ENCLOSURE.PADDING,
             label: pData?.label || '',
-            color: colorScheme[pData?.type as NodeType] || '#ccc'
+            color: colorScheme[pData?.type as NodeType] || '#ccc',
           });
         }
       }
@@ -453,8 +521,8 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Aggregates parallel links by summing their value.
    */
   protected rebuildLinks() {
-    const visibleNodeIds = new Set(this.nodes.map(n => n.id));
-    const visibleNodeMap = new Map(this.nodes.map(n => [n.id, n]));
+    const visibleNodeIds = new Set(this.nodes.map((n) => n.id));
+    const visibleNodeMap = new Map(this.nodes.map((n) => [n.id, n]));
     const newLinks = new Map<string, RenderLink>();
 
     this.linkToOriginals = new Map();
@@ -462,12 +530,12 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     // Determine view level: when only DIRECTORY nodes are visible,
     // show deduplicated module-level links. Once any non-directory
     // (FILE/CLASS/FUNCTION) appears, show file-level links.
-    const isModuleView = this.nodes.every(n => n.type === 'DIRECTORY');
+    const isModuleView = this.nodes.every((n) => n.type === NodeTypeValues.DIRECTORY);
 
     // Filter links by aggregation level
     const activeLinks = isModuleView
-      ? this.allLinks.filter(l => l.level === 'module')
-      : this.allLinks.filter(l => !l.level || l.level === 'file');
+      ? this.allLinks.filter((l) => l.level === 'module')
+      : this.allLinks.filter((l) => !l.level || l.level === 'file');
 
     const findVisible = (id: string): string | undefined => {
       if (visibleNodeIds.has(id)) return id;
@@ -479,7 +547,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       return undefined;
     };
 
-    activeLinks.forEach(l => {
+    activeLinks.forEach((l) => {
       const sourceId = findVisible(l.source as string);
       const targetId = findVisible(l.target as string);
 
@@ -490,7 +558,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
             source: visibleNodeMap.get(sourceId)!,
             target: visibleNodeMap.get(targetId)!,
             value: l.value,
-            type: l.type
+            type: l.type,
           });
         } else {
           newLinks.get(key)!.value += l.value;
@@ -560,7 +628,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     if (hidden.has(nodeId)) {
       hidden.delete(nodeId);
       const nodeData = this.allNodesMap.get(nodeId);
-      if (nodeData && !this.nodes.some(n => n.id === nodeId)) {
+      if (nodeData && !this.nodes.some((n) => n.id === nodeId)) {
         // Only show root nodes or nodes whose parent is expanded
         if (!nodeData.parentId || this.expandedNodes.has(nodeData.parentId)) {
           this.nodes.push(this.createRenderNode(nodeData));
@@ -569,7 +637,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     } else {
       hidden.add(nodeId);
       // Remove node and its descendants from current visible nodes
-      this.nodes = this.nodes.filter(n => n.id !== nodeId && !this.isDescendant(n.id, nodeId));
+      this.nodes = this.nodes.filter((n) => n.id !== nodeId && !this.isDescendant(n.id, nodeId));
       // Also remove from expanded nodes if it was expanded
       this.expandedNodes.delete(nodeId);
     }
@@ -589,11 +657,11 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     if (!original || !original.children || original.children.length === 0) return;
 
     this.expandedNodes.add(node.id);
-    this.nodes = this.nodes.filter(n => n.id !== node.id);
+    this.nodes = this.nodes.filter((n) => n.id !== node.id);
 
     const children = original.children
-      .filter(c => !this.hiddenNodes().has(c.id))
-      .map(c => this.createRenderNode(c, node.x, node.y));
+      .filter((c) => !this.hiddenNodes().has(c.id))
+      .map((c) => this.createRenderNode(c, node.x, node.y));
     this.nodes.push(...children);
 
     this.updateSimulationState();
@@ -604,10 +672,10 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    */
   protected collapse(parentId: string) {
     this.expandedNodes.delete(parentId);
-    this.nodes = this.nodes.filter(n => !this.isDescendant(n.id, parentId));
+    this.nodes = this.nodes.filter((n) => !this.isDescendant(n.id, parentId));
 
     const parentData = this.allNodesMap.get(parentId)!;
-    const enc = this.currentEnclosures.find(e => e.id === parentId);
+    const enc = this.currentEnclosures.find((e) => e.id === parentId);
     const x = enc ? enc.x : 0;
     const y = enc ? enc.y : 0;
 
@@ -622,9 +690,9 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     this.edgePopup.set(null);
     this.popupLink = null;
     this.rebuildLinks();
-    this.simulation.nodes(this.nodes);
-    this.simulation.force('link').links(this.links);
-    this.simulation.alpha(0.8).restart();
+    this.simulation!.nodes(this.nodes);
+    (this.simulation!.force('link') as d3.ForceLink<RenderNode, RenderLink>).links(this.links);
+    this.simulation!.alpha(0.8).restart();
   }
 
   /**
@@ -673,7 +741,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       targetName: targetNode?.label || (link.target as RenderNode).id,
       linkType: link.type as LinkType,
       value: link.value,
-      level: originals.find(l => l.level)?.level,
+      level: originals.find((l) => l.level)?.level,
     };
 
     if (link.bidirectional) {
@@ -681,15 +749,19 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       const sourceId = (link.source as RenderNode).id;
       const targetId = (link.target as RenderNode).id;
       metadata.forwardValue = originals
-        .filter(l => l.source === sourceId && l.target === targetId)
+        .filter((l) => l.source === sourceId && l.target === targetId)
         .reduce((sum, l) => sum + l.value, 0);
       metadata.reverseValue = originals
-        .filter(l => l.source === targetId && l.target === sourceId)
+        .filter((l) => l.source === targetId && l.target === sourceId)
         .reduce((sum, l) => sum + l.value, 0);
     }
 
     const current = this.edgePopup();
-    if (current && current.metadata.sourceName === metadata.sourceName && current.metadata.targetName === metadata.targetName) {
+    if (
+      current &&
+      current.metadata.sourceName === metadata.sourceName &&
+      current.metadata.targetName === metadata.targetName
+    ) {
       this.edgePopup.set(null);
       this.popupLink = null;
     } else {
@@ -702,44 +774,46 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   /**
    * Truncates the line at the target's edge so the arrowhead doesn't overlap the circle.
    */
-  protected shortenLine(source: any, target: any) {
-    const dx = target.x - source.x;
-    const dy = target.y - source.y;
+  protected shortenLine(source: RenderNode, target: RenderNode) {
+    const dx = target.x! - source.x!;
+    const dy = target.y! - source.y!;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist === 0) return { x: target.x, y: target.y };
+    if (dist === 0) return { x: target.x!, y: target.y! };
 
     const gap = target.r + 8;
     const t = 1 - gap / dist;
 
-    if (t < 0) return { x: target.x, y: target.y };
+    if (t < 0) return { x: target.x!, y: target.y! };
 
     return {
-      x: source.x + dx * t,
-      y: source.y + dy * t
+      x: source.x! + dx * t,
+      y: source.y! + dy * t,
     };
   }
 
   /**
    * Renders/updates enclosure (parent) bubbles with dashed stroke, label, and collapse-on-click.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected drawEnclosures(layer: any, enclosures: Enclosure[]) {
-    const sel = layer.selectAll('g.enclosure')
-      .data(enclosures, (d: any) => d.id);
+    const sel = layer.selectAll('g.enclosure').data(enclosures, (d: Enclosure) => d.id);
 
     const enter = sel.enter().append('g').attr('class', 'enclosure');
 
-    enter.append('circle')
-      .attr('fill', (d: any) => d.color)
+    enter
+      .append('circle')
+      .attr('fill', (d: Enclosure) => d.color)
       .attr('fill-opacity', D3_CONFIG.ENCLOSURE.FILL_OPACITY)
-      .attr('stroke', (d: any) => d.color)
+      .attr('stroke', (d: Enclosure) => d.color)
       .attr('stroke-opacity', D3_CONFIG.ENCLOSURE.STROKE_OPACITY)
       .attr('stroke-dasharray', '4 2')
       .attr('stroke-width', 1.5)
-      .on('click', (e: any, d: Enclosure) => this.collapse(d.id));
+      .on('click', (e: MouseEvent, d: Enclosure) => this.collapse(d.id));
 
-    enter.append('text')
+    enter
+      .append('text')
       .attr('text-anchor', 'middle')
-      .attr('fill', (d: any) => d.color)
+      .attr('fill', (d: Enclosure) => d.color)
       .style('font-size', '11px')
       .style('font-weight', 'bold')
       .style('pointer-events', 'none')
@@ -747,15 +821,17 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
     const merged = sel.merge(enter);
 
-    merged.select('circle')
-      .attr('cx', (d: any) => d.x)
-      .attr('cy', (d: any) => d.y)
-      .attr('r', (d: any) => d.r);
+    merged
+      .select('circle')
+      .attr('cx', (d: Enclosure) => d.x)
+      .attr('cy', (d: Enclosure) => d.y)
+      .attr('r', (d: Enclosure) => d.r);
 
-    merged.select('text')
-      .text((d: any) => d.label)
-      .attr('x', (d: any) => d.x)
-      .attr('y', (d: any) => d.y - d.r - 8);
+    merged
+      .select('text')
+      .text((d: Enclosure) => d.label)
+      .attr('x', (d: Enclosure) => d.x)
+      .attr('y', (d: Enclosure) => d.y - d.r - 8);
 
     sel.exit().remove();
   }
@@ -773,14 +849,16 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   private updateArrowMarkers() {
     if (!this.links || this.links.length === 0) return;
 
-    const uniqueColors = new Set(this.links.map(l => this.getLinkColor(l.value)));
+    const uniqueColors = new Set(this.links.map((l) => this.getLinkColor(l.value)));
 
-    d3.select(this.svg.node().querySelector('defs'))
+    d3.select(this.svg.node()!.querySelector('defs'))
       .selectAll('marker')
-      .data(Array.from(uniqueColors), (d: any) => d)
-      .join(
-        (enter: any) => enter.append('marker')
-          .attr('id', (d: any) => `arrowhead-${d.replace('#', '')}`)
+      .data(Array.from(uniqueColors), (d) => d as string)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .join((enter: any) =>
+        enter
+          .append('marker')
+          .attr('id', (d: string) => `arrowhead-${d.replace('#', '')}`)
           .attr('viewBox', '0 -5 10 10')
           .attr('refX', 20)
           .attr('refY', 0)
@@ -789,7 +867,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
           .attr('orient', 'auto')
           .append('path')
           .attr('d', 'M0,-5L10,0L0,5')
-          .attr('fill', (d: any) => d)
+          .attr('fill', (d: string) => d),
       );
   }
 
@@ -812,23 +890,21 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       const batch = nodesToExpand.slice(i, i + batchSize);
 
       setTimeout(() => {
-        batch.forEach(nodeId => {
+        batch.forEach((nodeId) => {
           const nodeData = this.allNodesMap.get(nodeId);
           if (!nodeData) return;
 
           if (!this.expandedNodes.has(nodeId)) {
             this.expandedNodes.add(nodeId);
-            const parentIndex = this.nodes.findIndex(n => n.id === nodeId);
+            const parentIndex = this.nodes.findIndex((n) => n.id === nodeId);
             if (parentIndex !== -1) {
               const parentNode = this.nodes[parentIndex];
               this.nodes.splice(parentIndex, 1);
 
               if (nodeData.children) {
                 const children = nodeData.children
-                  .filter(c => !this.hiddenNodes().has(c.id))
-                  .map(c =>
-                    this.createRenderNode(c, parentNode.x || 0, parentNode.y || 0)
-                  );
+                  .filter((c) => !this.hiddenNodes().has(c.id))
+                  .map((c) => this.createRenderNode(c, parentNode.x || 0, parentNode.y || 0));
                 this.nodes.push(...children);
               }
             }
@@ -859,7 +935,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       const batch = toCollapse.slice(i, i + batchSize);
 
       setTimeout(() => {
-        batch.forEach(nodeId => {
+        batch.forEach((nodeId) => {
           if (this.expandedNodes.has(nodeId)) {
             this.collapse(nodeId);
           }
@@ -900,8 +976,20 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const config = this.getPhysicsConfig();
     this.simulation
       .force('charge', d3.forceManyBody().strength(config.chargeStrength * factor))
-      .force('link', d3.forceLink(this.links).id((d: any) => d.id).distance(config.linkDistance * factor))
-      .force('collide', d3.forceCollide().radius((d: any) => d.r + config.collidePadding * factor).iterations(config.collideIterations));
+      .force(
+        'link',
+        d3
+          .forceLink(this.links)
+          .id((d) => (d as RenderNode).id)
+          .distance(config.linkDistance * factor),
+      )
+      .force(
+        'collide',
+        d3
+          .forceCollide()
+          .radius((d) => (d as RenderNode).r + config.collidePadding * factor)
+          .iterations(config.collideIterations),
+      );
     this.simulation.alpha(0.5).restart();
   }
 

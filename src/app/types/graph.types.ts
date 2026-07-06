@@ -3,11 +3,27 @@
  * Defines all types used in graph visualization and data structures
  */
 
-export type NodeType = 'DIRECTORY' | 'FILE' | 'CLASS' | 'FUNCTION' | 'METHOD';
+export const LinkTypeValues = {
+  DEPENDENCY: 'DEPENDENCY',
+  COUPLING: 'COUPLING',
+  CALL: 'CALL',
+} as const;
+export type LinkType = (typeof LinkTypeValues)[keyof typeof LinkTypeValues];
 
-export type LinkType = 'DEPENDENCY' | 'COUPLING' | 'CALL';
+export const LinkDirectionValues = {
+  FAN_IN: 'fan-in',
+  FAN_OUT: 'fan-out',
+} as const;
+export type LinkDirection = (typeof LinkDirectionValues)[keyof typeof LinkDirectionValues];
 
-export type LinkDirection = 'fan-in' | 'fan-out';
+export const NodeTypeValues = {
+  DIRECTORY: 'DIRECTORY',
+  FILE: 'FILE',
+  CLASS: 'CLASS',
+  FUNCTION: 'FUNCTION',
+  METHOD: 'METHOD',
+} as const;
+export type NodeType = (typeof NodeTypeValues)[keyof typeof NodeTypeValues];
 
 /**
  * Represents a node in the graph

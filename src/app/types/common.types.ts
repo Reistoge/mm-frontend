@@ -46,7 +46,7 @@ export interface RepoStats {
   byExtension?: Record<string, number>;
 
   /** Any other metrics */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -66,7 +66,7 @@ export interface ScanResult {
   stats: RepoStats;
 
   /** All modularity metrics */
-  modularityMetrics?: Record<string, any>;
+  modularityMetrics?: Record<string, unknown>;
 }
 
 /**
@@ -94,5 +94,5 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 export interface ErrorDetails {
   code: string;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
