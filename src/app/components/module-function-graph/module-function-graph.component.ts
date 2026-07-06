@@ -1,9 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BaseGraphComponent, PhysicsConfig } from '../base-graph.component';
+import { BaseGraphComponent } from '../base-graph.component';
 import { D3_CONFIG } from '../../config/d3-config';
 import { graphs, colors } from '../../design-system';
-import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrapper.component';
+import { GraphWrapperComponent } from '../graph-wrapper/graph-wrapper.component';
+import { PhysicsConfig, LegendItem } from '../../types/graph.types';
 
 @Component({
   selector: 'app-module-function-graph',

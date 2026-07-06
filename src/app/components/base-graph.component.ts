@@ -29,58 +29,12 @@ import {
   GraphLink,
   EdgeMetadata,
   LinkType,
+  RenderNode,
+  RenderLink,
+  Enclosure,
+  PhysicsConfig,
 } from '../types/graph.types';
 import { downloadSvg, downloadPng } from './common/component.utils';
-
-/**
- * Render-specific node data (includes D3 simulation data)
- */
-export interface RenderNode extends d3.SimulationNodeDatum {
-  id: string;
-  label: string;
-  type: NodeType;
-  parentId?: string;
-  r: number;
-  color: string;
-  data: GraphNode;
-}
-
-/**
- * Render-specific link data
- */
-export interface RenderLink extends d3.SimulationLinkDatum<RenderNode> {
-  source: RenderNode;
-  target: RenderNode;
-  value: number;
-  type: string;
-  bidirectional?: boolean;
-}
-
-/**
- * Enclosure bubble for folder visualization
- */
-export interface Enclosure {
-  id: string;
-  x: number;
-  y: number;
-  r: number;
-  label: string;
-  color: string;
-}
-
-/**
- * Physics configuration for a specific graph type
- */
-export interface PhysicsConfig {
-  chargeStrength: number;
-  linkDistance: number;
-  centerStrength: number;
-  collidePadding: number;
-  collideIterations: number;
-  clusterStrength?: number;
-  enclosurePushForce?: number;
-  enclosureLeashForce?: number;
-}
 
 /**
  * Abstract base class for D3 force-directed graph visualizations.

@@ -1,14 +1,7 @@
 import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GraphNode } from '../../types/graph.types';
+import { GraphNode, TreeItem } from '../../types/graph.types';
 import { graphs, colors, spacing, typography, components } from '../../design-system';
-
-/** A flattened tree item used for rendering the hierarchical list. */
-interface TreeItem {
-  node: GraphNode;
-  depth: number;
-  hasChildren: boolean;
-}
 
 @Component({
   selector: 'app-graph-tree-modal',

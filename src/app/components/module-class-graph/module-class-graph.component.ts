@@ -1,17 +1,19 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
+import { BaseGraphComponent } from '../base-graph.component';
+import { D3_CONFIG } from '../../config/d3-config';
 import {
-  BaseGraphComponent,
+  NodeTypeValues,
+  NodeType,
   PhysicsConfig,
   Enclosure,
   RenderNode,
   RenderLink,
-} from '../base-graph.component';
-import { D3_CONFIG } from '../../config/d3-config';
-import { NodeTypeValues, NodeType } from '../../types/graph.types';
+  LegendItem,
+} from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
-import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrapper.component';
+import { GraphWrapperComponent } from '../graph-wrapper/graph-wrapper.component';
 
 @Component({
   selector: 'app-module-class-graph',

@@ -5,10 +5,8 @@ import { ReposService } from '../../services/repos.service';
 import { Repo } from '../../models/repo';
 import { ScanResult } from '../../models/scan-result';
 
-import {
-  ReportsNavbarComponent,
-  ReportKey,
-} from '../../shared/components/reports-navbar/reports-navbar.component';
+import { ReportsNavbarComponent } from '../../shared/components/reports-navbar/reports-navbar.component';
+import { ReportKey } from '../../types/common.types';
 import { Observable } from 'rxjs';
 
 import { HierarchicalGraphComponent } from '../../components/hierarchical-graph/hierarchical-graph.component';

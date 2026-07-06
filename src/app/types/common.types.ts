@@ -96,3 +96,11 @@ export interface ErrorDetails {
   message: string;
   context?: Record<string, unknown>;
 }
+
+export type ReportKey = 'hierarchical-graph' | 'module-class-graph' | 'module-function-graph';
+
+export interface ReportItem {
+  key: ReportKey;
+  label: string;
+  hint?: string;
+}

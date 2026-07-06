@@ -3,6 +3,8 @@
  * Defines all types used in graph visualization and data structures
  */
 
+import * as d3 from 'd3';
+
 export const LinkTypeValues = {
   DEPENDENCY: 'DEPENDENCY',
   COUPLING: 'COUPLING',
@@ -120,40 +122,24 @@ export interface HierarchicalData {
 /**
  * Render-specific node data (includes D3 simulation data)
  */
-export interface RenderNode extends GraphNode {
-  /** Radius for rendering */
+export interface RenderNode extends d3.SimulationNodeDatum {
+  id: string;
+  label: string;
+  type: NodeType;
+  parentId?: string;
   r: number;
-
-  /** Computed color */
   color: string;
-
-  /** Original data node */
   data: GraphNode;
-
-  /** D3 simulation vx */
-  vx?: number;
-
-  /** D3 simulation vy */
-  vy?: number;
-
-  /** D3 simulation x (final) */
-  x: number;
-
-  /** D3 simulation y (final) */
-  y: number;
 }
 
 /**
  * Render-specific link data
  */
-export interface RenderLink extends GraphLink {
-  /** Computed opacity for rendering */
-  opacity?: number;
-
-  /** Computed width for rendering */
-  width?: number;
-
-  /** Whether this edge represents bidirectional links merged together */
+export interface RenderLink extends d3.SimulationLinkDatum<RenderNode> {
+  source: RenderNode;
+  target: RenderNode;
+  value: number;
+  type: string;
   bidirectional?: boolean;
 }
 
@@ -179,3 +165,39 @@ export interface Enclosure {
   /** Fill color */
   color: string;
 }
+
+/**
+ * Physics simulation configuration
+ */
+export interface PhysicsConfig {
+  chargeStrength: number;
+  linkDistance: number;
+  centerStrength: number;
+  collidePadding: number;
+  collideIterations: number;
+  clusterStrength?: number;
+  enclosurePushForce?: number;
+  enclosureLeashForce?: number;
+}
+
+/**
+ * Legend item for graph legend
+ */
+export interface LegendItem {
+  colorClass: string;
+  label: string;
+}
+
+/**
+ * Tree view item for hierarchy panel
+ */
+export interface TreeItem {
+  node: GraphNode;
+  depth: number;
+  hasChildren: boolean;
+}
+
+/**
+ * Functional node ID alias
+ */
+export type FNodeId = string;

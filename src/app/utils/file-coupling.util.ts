@@ -1,10 +1,6 @@
-/** File-coupling analysis utilities: graph, adjacency matrix, Sankey, top-K. */
+import { FileCouplingResult } from '../types/metrics.types';
 
-export interface FileCouplingEntry {
-  fanIn: string[];
-  fanOut: string[];
-}
-export type FileCouplingResult = Record<string, FileCouplingEntry>;
+/** File-coupling analysis utilities: graph, adjacency matrix, Sankey, top-K. */
 
 /**
  * Shortens a file path to "parentFolder/fileName.ext" for display.

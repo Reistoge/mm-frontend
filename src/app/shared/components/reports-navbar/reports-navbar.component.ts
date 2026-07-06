@@ -9,16 +9,7 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { components, colors, spacing } from '../../../design-system';
-
-/** Available graph report types. */
-export type ReportKey = 'hierarchical-graph' | 'module-class-graph' | 'module-function-graph';
-
-/** Describes a selectable report in the navigation bar. */
-export interface ReportItem {
-  key: ReportKey;
-  label: string;
-  hint?: string;
-}
+import { ReportKey, ReportItem } from '../../../types/common.types';
 
 @Component({
   selector: 'app-reports-navbar',

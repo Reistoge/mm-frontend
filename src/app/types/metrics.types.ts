@@ -9,16 +9,23 @@
 export type MetricData = Record<string, number | Record<string, unknown> | unknown[]>;
 
 /**
+ * File-level coupling entry
+ */
+export interface FileCouplingEntry {
+  fanIn: string[];
+  fanOut: string[];
+}
+
+/**
  * File-level coupling metrics
  * Backend returns arrays of file paths per file-dependency relationship
  */
-export type FileCouplingData = Record<
-  string,
-  {
-    fanIn: string[];
-    fanOut: string[];
-  }
->;
+export type FileCouplingData = Record<string, FileCouplingEntry>;
+
+/**
+ * File-level coupling result (alias)
+ */
+export type FileCouplingResult = Record<string, FileCouplingEntry>;
 
 /**
  * Class-level coupling metrics

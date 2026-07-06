@@ -8,15 +8,10 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GraphNode, EdgeMetadata } from '../../types/graph.types';
+import { GraphNode, EdgeMetadata, LegendItem } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
 import { GraphTreeModalComponent } from '../graph-tree-modal/graph-tree-modal.component';
 import { EdgePopupComponent } from '../edge-popup/edge-popup.component';
-
-export interface LegendItem {
-  colorClass: string;
-  label: string;
-}
 
 @Component({
   selector: 'app-graph-wrapper',

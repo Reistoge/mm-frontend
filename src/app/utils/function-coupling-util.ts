@@ -1,6 +1,6 @@
-/** Function-coupling analysis utilities: graph, adjacency matrix, top-K. */
+import { FNodeId } from '../types/graph.types';
 
-export type FNodeId = string; // "file::func"
+/** Function-coupling analysis utilities: graph, adjacency matrix, top-K. */
 
 /**
  * Builds nodes + edges + degree maps from function-coupling data.
