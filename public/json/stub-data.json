@@ -23,7 +23,9 @@
             "coupling-test/module-b/logic.js",
             "coupling-test/module-b/service.js",
             "coupling-test/module-c/database.js",
-            "coupling-test/module-c/utils.js"
+            "coupling-test/module-c/utils.js",
+            "coupling-test/module-d/processor.js",
+            "coupling-test/module-e/adapter.js"
           ],
           "status": true
         },
@@ -1228,6 +1230,200 @@
                   }
                 }
               ]
+            },
+            "coupling-test/module-d/processor.js": {
+              "DataProcessor": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "prepare"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [
+                    {
+                      "type": "Identifier",
+                      "name": "payload"
+                    }
+                  ],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "MemberExpression",
+                            "object": {
+                              "type": "Identifier",
+                              "name": "payload"
+                            },
+                            "computed": false,
+                            "property": {
+                              "type": "Identifier",
+                              "name": "toUpperCase"
+                            }
+                          },
+                          "arguments": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "PayloadHandler": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "handle"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [
+                    {
+                      "type": "Identifier",
+                      "name": "payload"
+                    }
+                  ],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "Identifier",
+                            "name": "processPayload"
+                          },
+                          "arguments": [
+                            {
+                              "type": "Identifier",
+                              "name": "payload"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "coupling-test/module-e/adapter.js": {
+              "DataAdapter": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "normalize"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [
+                    {
+                      "type": "Identifier",
+                      "name": "payload"
+                    }
+                  ],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "VariableDeclaration",
+                        "declarations": [
+                          {
+                            "type": "VariableDeclarator",
+                            "id": {
+                              "type": "Identifier",
+                              "name": "processor"
+                            },
+                            "init": {
+                              "type": "NewExpression",
+                              "callee": {
+                                "type": "Identifier",
+                                "name": "DataProcessor"
+                              },
+                              "arguments": []
+                            }
+                          }
+                        ],
+                        "kind": "const"
+                      },
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "MemberExpression",
+                            "object": {
+                              "type": "Identifier",
+                              "name": "processor"
+                            },
+                            "computed": false,
+                            "property": {
+                              "type": "Identifier",
+                              "name": "prepare"
+                            }
+                          },
+                          "arguments": [
+                            {
+                              "type": "Identifier",
+                              "name": "payload"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "AdapterFactory": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "build"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "Identifier",
+                            "name": "createAdapter"
+                          },
+                          "arguments": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           },
           "status": true
@@ -1259,6 +1455,14 @@
             "coupling-test/module-c/utils.js": {
               "fanOut": [],
               "fanIn": ["coupling-test/module-b/logic.js"]
+            },
+            "coupling-test/module-d/processor.js": {
+              "fanOut": ["coupling-test/module-e/adapter.js"],
+              "fanIn": ["coupling-test/module-e/adapter.js"]
+            },
+            "coupling-test/module-e/adapter.js": {
+              "fanOut": ["coupling-test/module-d/processor.js"],
+              "fanIn": ["coupling-test/module-d/processor.js"]
             }
           },
           "status": true
@@ -1271,43 +1475,57 @@
               "inDegree": 0,
               "outDegree": 1,
               "inDegreeCentrality": 0,
-              "outDegreeCentrality": 0.2,
-              "totalDegreeCentrality": 0.1
+              "outDegreeCentrality": 0.1429,
+              "totalDegreeCentrality": 0.0714
             },
             "coupling-test/module-a/view.js": {
               "inDegree": 0,
               "outDegree": 1,
               "inDegreeCentrality": 0,
-              "outDegreeCentrality": 0.2,
-              "totalDegreeCentrality": 0.1
+              "outDegreeCentrality": 0.1429,
+              "totalDegreeCentrality": 0.0714
             },
             "coupling-test/module-b/logic.js": {
               "inDegree": 1,
               "outDegree": 1,
-              "inDegreeCentrality": 0.2,
-              "outDegreeCentrality": 0.2,
-              "totalDegreeCentrality": 0.2
+              "inDegreeCentrality": 0.1429,
+              "outDegreeCentrality": 0.1429,
+              "totalDegreeCentrality": 0.1429
             },
             "coupling-test/module-b/service.js": {
               "inDegree": 1,
               "outDegree": 1,
-              "inDegreeCentrality": 0.2,
-              "outDegreeCentrality": 0.2,
-              "totalDegreeCentrality": 0.2
+              "inDegreeCentrality": 0.1429,
+              "outDegreeCentrality": 0.1429,
+              "totalDegreeCentrality": 0.1429
             },
             "coupling-test/module-c/database.js": {
               "inDegree": 1,
               "outDegree": 0,
-              "inDegreeCentrality": 0.2,
+              "inDegreeCentrality": 0.1429,
               "outDegreeCentrality": 0,
-              "totalDegreeCentrality": 0.1
+              "totalDegreeCentrality": 0.0714
             },
             "coupling-test/module-c/utils.js": {
               "inDegree": 1,
               "outDegree": 0,
-              "inDegreeCentrality": 0.2,
+              "inDegreeCentrality": 0.1429,
               "outDegreeCentrality": 0,
-              "totalDegreeCentrality": 0.1
+              "totalDegreeCentrality": 0.0714
+            },
+            "coupling-test/module-d/processor.js": {
+              "inDegree": 1,
+              "outDegree": 1,
+              "inDegreeCentrality": 0.1429,
+              "outDegreeCentrality": 0.1429,
+              "totalDegreeCentrality": 0.1429
+            },
+            "coupling-test/module-e/adapter.js": {
+              "inDegree": 1,
+              "outDegree": 1,
+              "inDegreeCentrality": 0.1429,
+              "outDegreeCentrality": 0.1429,
+              "totalDegreeCentrality": 0.1429
             }
           },
           "status": true
@@ -1808,6 +2026,151 @@
                             "type": "Identifier",
                             "name": "toString"
                           }
+                        },
+                        "arguments": []
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "coupling-test/module-d/processor.js": {
+              "processPayload": {
+                "type": "FunctionDeclaration",
+                "id": {
+                  "type": "Identifier",
+                  "name": "processPayload"
+                },
+                "generator": false,
+                "async": false,
+                "params": [
+                  {
+                    "type": "Identifier",
+                    "name": "payload"
+                  }
+                ],
+                "body": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "VariableDeclaration",
+                      "declarations": [
+                        {
+                          "type": "VariableDeclarator",
+                          "id": {
+                            "type": "Identifier",
+                            "name": "adapter"
+                          },
+                          "init": {
+                            "type": "CallExpression",
+                            "callee": {
+                              "type": "Identifier",
+                              "name": "createAdapter"
+                            },
+                            "arguments": []
+                          }
+                        }
+                      ],
+                      "kind": "const"
+                    },
+                    {
+                      "type": "ReturnStatement",
+                      "argument": {
+                        "type": "CallExpression",
+                        "callee": {
+                          "type": "MemberExpression",
+                          "object": {
+                            "type": "Identifier",
+                            "name": "adapter"
+                          },
+                          "computed": false,
+                          "property": {
+                            "type": "Identifier",
+                            "name": "normalize"
+                          }
+                        },
+                        "arguments": [
+                          {
+                            "type": "Identifier",
+                            "name": "payload"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "buildSummary": {
+                "type": "FunctionDeclaration",
+                "id": {
+                  "type": "Identifier",
+                  "name": "buildSummary"
+                },
+                "generator": false,
+                "async": false,
+                "params": [
+                  {
+                    "type": "Identifier",
+                    "name": "payload"
+                  }
+                ],
+                "body": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "ReturnStatement",
+                      "argument": {
+                        "type": "TemplateLiteral",
+                        "expressions": [
+                          {
+                            "type": "Identifier",
+                            "name": "payload"
+                          }
+                        ],
+                        "quasis": [
+                          {
+                            "type": "TemplateElement",
+                            "value": {
+                              "raw": "processed:",
+                              "cooked": "processed:"
+                            },
+                            "tail": false
+                          },
+                          {
+                            "type": "TemplateElement",
+                            "value": {
+                              "raw": "",
+                              "cooked": ""
+                            },
+                            "tail": true
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "coupling-test/module-e/adapter.js": {
+              "createAdapter": {
+                "type": "FunctionDeclaration",
+                "id": {
+                  "type": "Identifier",
+                  "name": "createAdapter"
+                },
+                "generator": false,
+                "async": false,
+                "params": [],
+                "body": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "ReturnStatement",
+                      "argument": {
+                        "type": "NewExpression",
+                        "callee": {
+                          "type": "Identifier",
+                          "name": "DataAdapter"
                         },
                         "arguments": []
                       }
@@ -2352,6 +2715,157 @@
                   ]
                 }
               }
+            },
+            "coupling-test/module-d/processor.js": {
+              "processPayload": {
+                "type": "FunctionDeclaration",
+                "id": {
+                  "type": "Identifier",
+                  "name": "processPayload"
+                },
+                "generator": false,
+                "async": false,
+                "params": [
+                  {
+                    "type": "Identifier",
+                    "name": "payload"
+                  }
+                ],
+                "body": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "VariableDeclaration",
+                      "declarations": [
+                        {
+                          "type": "VariableDeclarator",
+                          "id": {
+                            "type": "Identifier",
+                            "name": "adapter"
+                          },
+                          "init": {
+                            "type": "CallExpression",
+                            "callee": {
+                              "type": "Identifier",
+                              "name": "createAdapter"
+                            },
+                            "arguments": []
+                          }
+                        }
+                      ],
+                      "kind": "const"
+                    },
+                    {
+                      "type": "ReturnStatement",
+                      "argument": {
+                        "type": "CallExpression",
+                        "callee": {
+                          "type": "MemberExpression",
+                          "object": {
+                            "type": "Identifier",
+                            "name": "adapter"
+                          },
+                          "computed": false,
+                          "property": {
+                            "type": "Identifier",
+                            "name": "normalize"
+                          }
+                        },
+                        "arguments": [
+                          {
+                            "type": "Identifier",
+                            "name": "payload"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "fan-out": {
+                  "createAdapter": 1
+                }
+              },
+              "buildSummary": {
+                "type": "FunctionDeclaration",
+                "id": {
+                  "type": "Identifier",
+                  "name": "buildSummary"
+                },
+                "generator": false,
+                "async": false,
+                "params": [
+                  {
+                    "type": "Identifier",
+                    "name": "payload"
+                  }
+                ],
+                "body": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "ReturnStatement",
+                      "argument": {
+                        "type": "TemplateLiteral",
+                        "expressions": [
+                          {
+                            "type": "Identifier",
+                            "name": "payload"
+                          }
+                        ],
+                        "quasis": [
+                          {
+                            "type": "TemplateElement",
+                            "value": {
+                              "raw": "processed:",
+                              "cooked": "processed:"
+                            },
+                            "tail": false
+                          },
+                          {
+                            "type": "TemplateElement",
+                            "value": {
+                              "raw": "",
+                              "cooked": ""
+                            },
+                            "tail": true
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "coupling-test/module-e/adapter.js": {
+              "createAdapter": {
+                "type": "FunctionDeclaration",
+                "id": {
+                  "type": "Identifier",
+                  "name": "createAdapter"
+                },
+                "generator": false,
+                "async": false,
+                "params": [],
+                "body": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "ReturnStatement",
+                      "argument": {
+                        "type": "NewExpression",
+                        "callee": {
+                          "type": "Identifier",
+                          "name": "DataAdapter"
+                        },
+                        "arguments": []
+                      }
+                    }
+                  ]
+                },
+                "fan-in": {
+                  "processPayload": 1
+                }
+              }
             }
           },
           "status": true
@@ -2467,6 +2981,34 @@
                 "fanOutFunctions": 0,
                 "dependencyScore": 0
               }
+            },
+            "coupling-test/module-d/processor.js": {
+              "processPayload": {
+                "type": "FunctionDeclaration",
+                "fanInCalls": 0,
+                "fanOutCalls": 1,
+                "fanInFunctions": 0,
+                "fanOutFunctions": 1,
+                "dependencyScore": 1
+              },
+              "buildSummary": {
+                "type": "FunctionDeclaration",
+                "fanInCalls": 0,
+                "fanOutCalls": 0,
+                "fanInFunctions": 0,
+                "fanOutFunctions": 0,
+                "dependencyScore": 0
+              }
+            },
+            "coupling-test/module-e/adapter.js": {
+              "createAdapter": {
+                "type": "FunctionDeclaration",
+                "fanInCalls": 1,
+                "fanOutCalls": 0,
+                "fanInFunctions": 1,
+                "fanOutFunctions": 0,
+                "dependencyScore": 1
+              }
             }
           },
           "status": true
@@ -2522,6 +3064,19 @@
               "generateId": {
                 "lines": 3
               }
+            },
+            "coupling-test/module-d/processor.js": {
+              "processPayload": {
+                "lines": 4
+              },
+              "buildSummary": {
+                "lines": 3
+              }
+            },
+            "coupling-test/module-e/adapter.js": {
+              "createAdapter": {
+                "lines": 3
+              }
             }
           },
           "status": true
@@ -2559,6 +3114,16 @@
               "afferent": 1,
               "efferent": 0,
               "instability": 0
+            },
+            "coupling-test/module-d/processor.js": {
+              "afferent": 1,
+              "efferent": 1,
+              "instability": 0.5
+            },
+            "coupling-test/module-e/adapter.js": {
+              "afferent": 1,
+              "efferent": 1,
+              "instability": 0.5
             }
           },
           "status": true
@@ -3784,6 +4349,210 @@
                   }
                 }
               ]
+            },
+            "coupling-test/module-d/processor.js": {
+              "DataProcessor": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "prepare"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [
+                    {
+                      "type": "Identifier",
+                      "name": "payload"
+                    }
+                  ],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "MemberExpression",
+                            "object": {
+                              "type": "Identifier",
+                              "name": "payload"
+                            },
+                            "computed": false,
+                            "property": {
+                              "type": "Identifier",
+                              "name": "toUpperCase"
+                            }
+                          },
+                          "arguments": []
+                        }
+                      }
+                    ]
+                  },
+                  "fan-in": {
+                    "DataAdapter": {
+                      "normalize": 1
+                    }
+                  }
+                }
+              ],
+              "PayloadHandler": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "handle"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [
+                    {
+                      "type": "Identifier",
+                      "name": "payload"
+                    }
+                  ],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "Identifier",
+                            "name": "processPayload"
+                          },
+                          "arguments": [
+                            {
+                              "type": "Identifier",
+                              "name": "payload"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "coupling-test/module-e/adapter.js": {
+              "DataAdapter": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "normalize"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [
+                    {
+                      "type": "Identifier",
+                      "name": "payload"
+                    }
+                  ],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "VariableDeclaration",
+                        "declarations": [
+                          {
+                            "type": "VariableDeclarator",
+                            "id": {
+                              "type": "Identifier",
+                              "name": "processor"
+                            },
+                            "init": {
+                              "type": "NewExpression",
+                              "callee": {
+                                "type": "Identifier",
+                                "name": "DataProcessor"
+                              },
+                              "arguments": []
+                            }
+                          }
+                        ],
+                        "kind": "const"
+                      },
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "MemberExpression",
+                            "object": {
+                              "type": "Identifier",
+                              "name": "processor"
+                            },
+                            "computed": false,
+                            "property": {
+                              "type": "Identifier",
+                              "name": "prepare"
+                            }
+                          },
+                          "arguments": [
+                            {
+                              "type": "Identifier",
+                              "name": "payload"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "fan-out": {
+                    "DataProcessor": {
+                      "prepare": 1
+                    }
+                  }
+                }
+              ],
+              "AdapterFactory": [
+                {
+                  "type": "ClassMethod",
+                  "static": false,
+                  "key": {
+                    "type": "Identifier",
+                    "name": "build"
+                  },
+                  "computed": false,
+                  "kind": "method",
+                  "id": null,
+                  "generator": false,
+                  "async": false,
+                  "params": [],
+                  "body": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ReturnStatement",
+                        "argument": {
+                          "type": "CallExpression",
+                          "callee": {
+                            "type": "Identifier",
+                            "name": "createAdapter"
+                          },
+                          "arguments": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           },
           "status": true
@@ -3899,6 +4668,42 @@
                 "fanOutClasses": 0,
                 "dependencyScore": 0
               }
+            },
+            "coupling-test/module-d/processor.js": {
+              "DataProcessor": {
+                "methods": 1,
+                "fanInCalls": 1,
+                "fanOutCalls": 0,
+                "fanInClasses": 1,
+                "fanOutClasses": 0,
+                "dependencyScore": 1
+              },
+              "PayloadHandler": {
+                "methods": 1,
+                "fanInCalls": 0,
+                "fanOutCalls": 0,
+                "fanInClasses": 0,
+                "fanOutClasses": 0,
+                "dependencyScore": 0
+              }
+            },
+            "coupling-test/module-e/adapter.js": {
+              "DataAdapter": {
+                "methods": 1,
+                "fanInCalls": 0,
+                "fanOutCalls": 1,
+                "fanInClasses": 0,
+                "fanOutClasses": 1,
+                "dependencyScore": 1
+              },
+              "AdapterFactory": {
+                "methods": 1,
+                "fanInCalls": 0,
+                "fanOutCalls": 0,
+                "fanInClasses": 0,
+                "fanOutClasses": 0,
+                "dependencyScore": 0
+              }
             }
           },
           "status": true
@@ -3936,6 +4741,16 @@
               "total": 30,
               "nonEmpty": 25,
               "blank": 5
+            },
+            "coupling-test/module-d/processor.js": {
+              "total": 26,
+              "nonEmpty": 22,
+              "blank": 4
+            },
+            "coupling-test/module-e/adapter.js": {
+              "total": 19,
+              "nonEmpty": 16,
+              "blank": 3
             }
           },
           "status": true
@@ -3991,6 +4806,19 @@
               "generateId": {
                 "params": 0
               }
+            },
+            "coupling-test/module-d/processor.js": {
+              "processPayload": {
+                "params": 1
+              },
+              "buildSummary": {
+                "params": 1
+              }
+            },
+            "coupling-test/module-e/adapter.js": {
+              "createAdapter": {
+                "params": 0
+              }
             }
           },
           "status": true
@@ -4000,10 +4828,10 @@
           "parse": [],
           "metric": [],
           "traverse": [
-            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/api-emefjs/data/repos/2a9691ce-3162-4044-94dc-cff92ba41697/coupling-test/module-a/controller.js: TypeError: Cannot read properties of undefined (reading 'UserService')",
-            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/api-emefjs/data/repos/2a9691ce-3162-4044-94dc-cff92ba41697/coupling-test/module-a/view.js: TypeError: Cannot read properties of undefined (reading 'Formatter')",
-            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/api-emefjs/data/repos/2a9691ce-3162-4044-94dc-cff92ba41697/coupling-test/module-b/logic.js: TypeError: Cannot read properties of undefined (reading 'MathHelper')",
-            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/api-emefjs/data/repos/2a9691ce-3162-4044-94dc-cff92ba41697/coupling-test/module-b/service.js: TypeError: Cannot read properties of undefined (reading 'DBConnection')"
+            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/metrics/api-emefjs/data/repos/9d873206-1d43-4f5b-86a9-018a0331a07c/coupling-test/module-a/controller.js: TypeError: Cannot read properties of undefined (reading 'UserService')",
+            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/metrics/api-emefjs/data/repos/9d873206-1d43-4f5b-86a9-018a0331a07c/coupling-test/module-a/view.js: TypeError: Cannot read properties of undefined (reading 'Formatter')",
+            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/metrics/api-emefjs/data/repos/9d873206-1d43-4f5b-86a9-018a0331a07c/coupling-test/module-b/logic.js: TypeError: Cannot read properties of undefined (reading 'MathHelper')",
+            "../../../Error traversing AST on metric class-coupling -> /home/reist/Documents/github/metrics/api-emefjs/data/repos/9d873206-1d43-4f5b-86a9-018a0331a07c/coupling-test/module-b/service.js: TypeError: Cannot read properties of undefined (reading 'DBConnection')"
           ]
         }
       }
