@@ -6,15 +6,15 @@ import { RouterOutlet } from '@angular/router';
   standalone: true,
   imports: [RouterOutlet],
   template: `
-  <div class="min-h-screen bg-gray-100">
-    <nav class="bg-white border-b">
-      <div class="max-w-5xl mx-auto p-4 flex items-center justify-between">
-        <a routerLink="/repos" class="font-semibold">Modularity Metrics</a>
-      </div>
-    </nav>
-    <router-outlet />
-  </div>
-  `
+    <div class="min-h-screen bg-gray-100">
+      <nav class="bg-white border-b">
+        <div class="max-w-5xl mx-auto p-4 flex items-center justify-between">
+          <a routerLink="/repos" class="font-semibold">Modularity Metrics</a>
+        </div>
+      </nav>
+      <router-outlet />
+    </div>
+  `,
 })
 /** Root component: nav bar + router outlet. */
 export class AppComponent {}

@@ -27,7 +27,7 @@ src/
     services/
       graph-data.service.ts          # Orchestrator: fetches + builds graph
       graph-hierarchy-builder.service.ts   # Node hierarchy builder
-      graph-link-aggregator.service.ts     # Link creator/aggregator (5 levels)
+      graph-link-aggregator.service.ts     # Primitive edges + file/module aggregation
       metrics.service.ts             # REST client for metric endpoints
       repos.service.ts               # REST client for repo CRUD
       chart-renderer.service.ts      # ECharts bar chart rendering
@@ -68,14 +68,22 @@ hierarchyBuilder.buildHierarchy(data)
   -> buildClassesAndMethods(): CLASS + METHOD nodes from class metrics
   -> buildStandaloneFunctions(): FUNCTION nodes from func metrics
 
-// 2. Build links at 5 levels
+// 2. Build links (primitive edges + multi-level aggregation)
 linkAggregator.buildAllLinks(data, nodesMap, classToFilesMap, functionToFileMap, fileCoupling)
-  -> Step 0: File DEPENDENCY links  (from file-coupling fanOut)
-  -> Step 1: Method CALL links      (from class-coupling fanIn/fanOut)
-  -> Step 2: Function CALL links    (from function-coupling fanIn/fanOut)
-  -> Step 3: Class COUPLING links   (aggregated from method+function calls)
-  -> Step 4: Module DEPENDENCY links (deduplicated by parent directory)
+  -> Level 0: primitive function/method edges
+     1. FUNCTION FILE -> FUNCTION FILE   (function-coupling fan-out, CALL)
+     2. CLASS FUNCTION -> CLASS FUNCTION (class-coupling fan-out + NewExpression scan, CALL/INSTANTIATE)
+     3. CLASS FUNCTION -> FUNCTION FILE  (CallExpression scan of method bodies, CALL)
+     4. FUNCTION FILE -> CLASS FUNCTION  (CallExpression/NewExpression scan of bodies, CALL/INSTANTIATE)
+  -> Level 1: CLASS -> CLASS aggregation
+  -> Level 2: FILE -> FILE / CLASS -> FILE / FILE -> CLASS (FILE->FILE IMPORTS from file-coupling fanOut)
+  -> Level 3: MODULE relationships (MODULE -> MODULE and module <-> entity)
 ```
+
+Edges carry **counts per dependency type** (`imports`, `calls`, `instantiates`); types with count 0 are
+omitted. fan-in is **never** used to build edges (a call appears in the caller's fan-out by construction),
+which avoids double counting. Primitive edges are emitted into the link set as well, so fully-expanded
+function/method views keep their links.
 
 ### Stage 3: Rendering (`BaseGraphComponent.initSimulation`)
 
@@ -103,7 +111,7 @@ linkAggregator.buildAllLinks(data, nodesMap, classToFilesMap, functionToFileMap,
 | Component | Shows | Physics Config | Overrides |
 |---|---|---|---|
 | `HierarchicalGraphComponent` | Full DIR→FILE→CLASS→FUNC tree | `HIERARCHICAL` | `filterNodesAndLinks` (standard) |
-| `ModuleClassGraphComponent` | Module→Class coupling | `MODULE_CLASS` | `filterNodesAndLinks` + custom `rebuildLinks` (uses couplingValue) + custom `calculateEnclosures` (all descendants, not just direct children) |
+| `ModuleClassGraphComponent` | Module→Class coupling | `MODULE_CLASS` | `filterNodesAndLinks` + custom `calculateEnclosures` (all descendants, not just direct children) |
 | `ModuleFunctionGraphComponent` | Module→Function coupling | `MODULE_FUNCTION` | `filterNodesAndLinks` (standard) |
 
 Key customization points (abstract methods):
@@ -147,7 +155,13 @@ Two view levels determine which links are shown in `rebuildLinks()`:
 | Only `DIRECTORY` nodes | `level === 'module'` (deduplicated module→module) |
 | Any non-directory node | `!level \|\| level === 'file'` (individual file→file) |
 
-When a link endpoint is hidden (collapsed), `findVisible()` walks up the parent chain to the nearest visible ancestor.
+When a link endpoint is hidden (collapsed), `findVisible()` walks up the parent chain to the nearest
+visible ancestor. Multiple `GraphLink`s that resolve to the same rendered (source, target) pair are merged
+per `level === 'file'`; edges at different aggregation depths are **deduplicated by ancestor distance** so a
+more specific edge (e.g. a method→method primitive) is shown and the coarser aggregated edge that would
+otherwise double-count it is skipped. Each rendered link is labeled with its per-type counts via
+`formatLinkCounts` (e.g. `2 calls · 3 instantiates`), and the edge popup shows a badge per type plus
+forward/reverse counts on bidirectional edges.
 
 ## Environment / Stub Mode
 

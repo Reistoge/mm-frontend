@@ -6,6 +6,9 @@
   [showTreeModal]="showTreeModal()"
   [allNodes]="allNodes"
   [hiddenNodes]="hiddenNodes()"
+  [edgePopupData]="edgePopup()"
+  [nodePopupData]="nodePopup()"
+  (closeEdgePopup)="edgePopup.set(null)"
   (separationChange)="separation.set($event); updateSeparation($event)"
   (expandAll)="expandAll()"
   (collapseAll)="collapseAll()"
@@ -15,6 +18,7 @@
   (openDetailsModal)="openDetailsModal.emit()"
   (runScan)="runScan.emit()"
   (treeNodeSelected)="onNodeSelected($event)"
-  (closeTreeModal)="showTreeModal.set(false)">
+  (closeTreeModal)="showTreeModal.set(false)"
+>
   <div #graphContainer [class]="graphs.container.inner"></div>
 </app-graph-wrapper>

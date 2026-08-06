@@ -1,23 +1,7 @@
 import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GraphNode, NodeType } from '../../types/graph.types';
+import { GraphNode, TreeItem } from '../../types/graph.types';
 import { graphs, colors, spacing, typography, components } from '../../design-system';
-
-/** A flattened tree item used for rendering the hierarchical list. */
-interface TreeItem {
-  node: GraphNode;
-  depth: number;
-  hasChildren: boolean;
-}
-
-/** Material icon names by node type. */
-const NODE_ICONS: Record<NodeType, string> = {
-  DIRECTORY: 'folder',
-  FILE: 'description',
-  CLASS: 'widgets',
-  FUNCTION: 'code',
-  METHOD: 'code',
-};
 
 @Component({
   selector: 'app-graph-tree-modal',
@@ -33,7 +17,7 @@ export class GraphTreeModalComponent {
   @Input({ required: true }) nodes: GraphNode[] = [];
   @Input() hiddenNodeIds = new Set<string>();
   @Input() isOpen = false;
-  @Output() close = new EventEmitter<void>();
+  @Output() closed = new EventEmitter<void>();
   @Output() nodeSelected = new EventEmitter<string>();
 
   graphs = graphs;
@@ -52,7 +36,7 @@ export class GraphTreeModalComponent {
   readonly treeItems = computed(() => {
     const search = this.searchText().toLowerCase().trim();
     const expanded = this.expandedSignal();
-    const nodeMap = new Map(this.nodes.map(n => [n.id, n]));
+    const nodeMap = new Map(this.nodes.map((n) => [n.id, n]));
     const matches = search ? this.computeMatches(search, nodeMap) : null;
     const result: TreeItem[] = [];
 
@@ -105,18 +89,33 @@ export class GraphTreeModalComponent {
     }
   }
 
-  getNodeColor(type: string): string { return (colors.visualizationHex as Record<string, string>)[type] || '#999'; }
-  isNodeHidden(id: string): boolean { return this.hiddenNodeIds.has(id); }
+  getNodeColor(type: string): string {
+    return (colors.visualizationHex as Record<string, string>)[type] || '#999';
+  }
+  isNodeHidden(id: string): boolean {
+    return this.hiddenNodeIds.has(id);
+  }
 
   toggleExpand(id: string): void {
     const set = new Set(this.expandedSignal());
-    if (set.has(id)) set.delete(id); else set.add(id);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
     this.expandedSignal.set(set);
   }
 
-  onSearch(event: Event): void { this.searchText.set((event.target as HTMLInputElement).value); }
-  treeExpanded(id: string): boolean { return this.expandedSignal().has(id); }
-  selectNode(id: string): void { this.nodeSelected.emit(id); }
-  closeModal(): void { this.close.emit(); }
-  stopPropagation(event: Event): void { event.stopPropagation(); }
+  onSearch(event: Event): void {
+    this.searchText.set((event.target as HTMLInputElement).value);
+  }
+  treeExpanded(id: string): boolean {
+    return this.expandedSignal().has(id);
+  }
+  selectNode(id: string): void {
+    this.nodeSelected.emit(id);
+  }
+  closeModal(): void {
+    this.closed.emit();
+  }
+  stopPropagation(event: Event): void {
+    event.stopPropagation();
+  }
 }

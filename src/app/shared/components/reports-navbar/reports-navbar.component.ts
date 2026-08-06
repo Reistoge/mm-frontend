@@ -1,24 +1,20 @@
-import { Component, EventEmitter, Input, Output, signal, OnChanges, SimpleChanges } from '@angular/core';
-import { NgFor, NgClass } from '@angular/common';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  signal,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
+import { NgClass } from '@angular/common';
 import { components, colors, spacing } from '../../../design-system';
-
-/** Available graph report types. */
-export type ReportKey =
-  | 'hierarchical-graph'
-  | 'module-class-graph'
-  | 'module-function-graph'; 
-
-/** Describes a selectable report in the navigation bar. */
-export interface ReportItem {
-  key: ReportKey;
-  label: string;
-  hint?: string;
-}
+import { ReportKey, ReportItem } from '../../../types/common.types';
 
 @Component({
   selector: 'app-reports-navbar',
   standalone: true,
-  imports: [NgFor, NgClass],
+  imports: [NgClass],
   templateUrl: './reports-navbar.component.html',
 })
 /**
@@ -30,11 +26,9 @@ export class ReportsNavbarComponent implements OnChanges {
   colors = colors;
   spacing = spacing;
   @Input() items: ReportItem[] = [
-  
-    { key: 'hierarchical-graph', label: 'Project summary' },  
-    { key: 'module-class-graph', label: 'Module-class' },  
-    { key: 'module-function-graph', label: 'Module-function' },  
- 
+    { key: 'hierarchical-graph', label: 'Project summary' },
+    { key: 'module-class-graph', label: 'Module-class' },
+    { key: 'module-function-graph', label: 'Module-function' },
   ];
 
   @Input() selected: ReportKey | null = null;

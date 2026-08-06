@@ -1,7 +1,6 @@
-/** File-coupling analysis utilities: graph, adjacency matrix, Sankey, top-K. */
+import { FileCouplingResult } from '../types/metrics.types';
 
-export type FileCouplingEntry = { fanIn: string[]; fanOut: string[] };
-export type FileCouplingResult = Record<string, FileCouplingEntry>;
+/** File-coupling analysis utilities: graph, adjacency matrix, Sankey, top-K. */
 
 /**
  * Shortens a file path to "parentFolder/fileName.ext" for display.
@@ -23,7 +22,7 @@ export function buildGraph(fc: FileCouplingResult) {
   const nodes = files.map((id) => ({ id, name: shorten(id), value: 1, symbolSize: 12 }));
 
   // links (solo fanOut → edge: file -> dep si dep también existe en el set)
-  const links: Array<{ source: string; target: string }> = [];
+  const links: { source: string; target: string }[] = [];
   for (const [src, { fanOut }] of Object.entries(fc)) {
     for (const dst of fanOut || []) {
       if (fc[dst]) links.push({ source: src, target: dst });
@@ -33,7 +32,10 @@ export function buildGraph(fc: FileCouplingResult) {
   // grados
   const degOut = new Map<string, number>();
   const degIn = new Map<string, number>();
-  for (const f of files) { degOut.set(f, 0); degIn.set(f, 0); }
+  for (const f of files) {
+    degOut.set(f, 0);
+    degIn.set(f, 0);
+  }
   for (const { source, target } of links) {
     degOut.set(source, (degOut.get(source) || 0) + 1);
     degIn.set(target, (degIn.get(target) || 0) + 1);
@@ -45,7 +47,7 @@ export function buildGraph(fc: FileCouplingResult) {
 /**
  * Returns top-K entries from a Map sorted descending by value.
  */
-export function topK<T extends Record<string, number>>(m: Map<string, number>, k = 10) {
+export function topK(m: Map<string, number>, k = 10) {
   return Array.from(m.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, k)
@@ -74,14 +76,13 @@ export function buildAdjacency(fc: FileCouplingResult) {
  * Converts file-coupling data to Sankey diagram format (ECharts-compatible).
  */
 export function toSankey(fc: FileCouplingResult, limitPerNode = 6) {
-  const nodes = Array.from(new Set(Object.keys(fc))).map(id => ({ name: shorten(id) }));
-  const idToShort = new Map(nodes.map(n => [n.name, n.name]));
+  const nodes = Array.from(new Set(Object.keys(fc))).map((id) => ({ name: shorten(id) }));
   const fullToShort = new Map<string, string>();
   for (const full of Object.keys(fc)) fullToShort.set(full, shorten(full));
 
-  const links: Array<{ source: string; target: string; value: number }> = [];
+  const links: { source: string; target: string; value: number }[] = [];
   for (const [src, { fanOut }] of Object.entries(fc)) {
-    const trimmed = (fanOut || []).filter(d => fc[d]).slice(0, limitPerNode);
+    const trimmed = (fanOut || []).filter((d) => fc[d]).slice(0, limitPerNode);
     for (const dst of trimmed) {
       links.push({ source: fullToShort.get(src)!, target: fullToShort.get(dst)!, value: 1 });
     }

@@ -7,5 +7,5 @@ export const routes: Routes = [
   { path: '', redirectTo: 'repos', pathMatch: 'full' },
   { path: 'repos', component: ReposPageComponent },
   { path: 'repos/:id', component: RepoDetailPageComponent },
-  { path: '**', redirectTo: 'repos' }
+  { path: '**', redirectTo: 'repos' },
 ];

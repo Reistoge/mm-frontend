@@ -5,7 +5,8 @@ import { ReposService } from '../../services/repos.service';
 import { Repo } from '../../models/repo';
 import { ScanResult } from '../../models/scan-result';
 
-import { ReportsNavbarComponent, ReportKey } from '../../shared/components/reports-navbar/reports-navbar.component';
+import { ReportsNavbarComponent } from '../../shared/components/reports-navbar/reports-navbar.component';
+import { ReportKey } from '../../types/common.types';
 import { Observable } from 'rxjs';
 
 import { HierarchicalGraphComponent } from '../../components/hierarchical-graph/hierarchical-graph.component';
@@ -28,11 +29,11 @@ import { ChartRendererService } from '../../services/chart-renderer.service';
     HierarchicalGraphComponent,
     ModuleClassGraphComponent,
     ModuleFunctionGraphComponent,
-    DetailsComponent
+    DetailsComponent,
   ],
   templateUrl: './repo-detail-page.component.html',
 })
-export class RepoDetailPageComponent implements OnDestroy {
+export class RepoDetailPageComponent implements OnDestroy, OnInit {
   private route = inject(ActivatedRoute);
   private reposService = inject(ReposService);
   private chartRenderer = inject(ChartRendererService);
@@ -64,7 +65,7 @@ export class RepoDetailPageComponent implements OnDestroy {
    */
   getMetricKeys(): string[] {
     const s = this.scan();
-    const mm: any = s?.modularityMetrics ?? {};
+    const mm = (s?.modularityMetrics as Record<string, unknown> | undefined) ?? {};
     if (!mm || typeof mm !== 'object') return [];
     return Object.keys(mm);
   }
@@ -72,9 +73,9 @@ export class RepoDetailPageComponent implements OnDestroy {
   /**
    * Gets all metrics data as a map for child components.
    */
-  getMetricsData(): Record<string, any> {
+  getMetricsData(): Record<string, unknown> {
     const s = this.scan();
-    const mm: any = s?.modularityMetrics ?? {};
+    const mm = (s?.modularityMetrics as Record<string, unknown> | undefined) ?? {};
     return mm || {};
   }
 
@@ -88,11 +89,15 @@ export class RepoDetailPageComponent implements OnDestroy {
    */
   hasFilesMetric(): boolean {
     const s = this.scan();
-    const mm: any = s?.modularityMetrics ?? {};
+    const mm = (s?.modularityMetrics as Record<string, unknown> | undefined) ?? {};
     const files = mm?.['../../../../files'];
     if (!files) return false;
-    return (Array.isArray(files) && files.length > 0) ||
-      (files && Array.isArray(files.result) && files.result.length > 0);
+    return (
+      (Array.isArray(files) && files.length > 0) ||
+      (files &&
+        Array.isArray((files as Record<string, unknown>)['result']) &&
+        (files as Record<string, unknown[]>)['result'].length > 0)
+    );
   }
 
   // ====== Data Loading ======
@@ -126,7 +131,7 @@ export class RepoDetailPageComponent implements OnDestroy {
         // Clear previous charts
         this.chartRenderer.disposeAll();
         this.scan.set(res);
-        this.scanVersion.update(v => v + 1);
+        this.scanVersion.update((v) => v + 1);
         this.loading.set(false);
       },
       error: (e) => {

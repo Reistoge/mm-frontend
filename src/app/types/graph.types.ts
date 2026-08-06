@@ -3,11 +3,45 @@
  * Defines all types used in graph visualization and data structures
  */
 
-export type NodeType = 'DIRECTORY' | 'FILE' | 'CLASS' | 'FUNCTION' | 'METHOD';
+import * as d3 from 'd3';
+import type { NodeMetricData } from './metrics.types';
 
-export type LinkType = 'DEPENDENCY' | 'COUPLING' | 'CALL';
+export const LinkTypeValues = {
+  CALL: 'calls',
+  INSTANTIATE: 'instantiates',
+  IMPORTS: 'imports',
+} as const;
+export type LinkType = (typeof LinkTypeValues)[keyof typeof LinkTypeValues];
 
-export type LinkDirection = 'fan-in' | 'fan-out';
+/**
+ * Per-dependency-type counts for a link. Types with count 0 are omitted.
+ * One link between a pair can carry several dependency types at once
+ * (e.g. `{ imports: 2, calls: 2, instantiates: 3 }`).
+ */
+export type LinkCounts = Partial<Record<LinkType, number>>;
+
+/** Sums all per-type counts into a single weight (for simulation/coloring). */
+export function linkTotal(counts: LinkCounts): number {
+  return (counts.calls ?? 0) + (counts.instantiates ?? 0) + (counts.imports ?? 0);
+}
+
+/** Formats per-type counts for an edge label, e.g. "2 calls · 3 instantiates". */
+export function formatLinkCounts(counts: LinkCounts): string {
+  const parts: string[] = [];
+  if (counts.imports) parts.push(`${counts.imports}`);
+  if (counts.calls) parts.push(`${counts.calls} `);
+  if (counts.instantiates) parts.push(`${counts.instantiates} `);
+  return parts.join(' · ');
+}
+
+export const NodeTypeValues = {
+  DIRECTORY: 'DIRECTORY',
+  FILE: 'FILE',
+  CLASS: 'CLASS',
+  FUNCTION: 'FUNCTION',
+  METHOD: 'METHOD',
+} as const;
+export type NodeType = (typeof NodeTypeValues)[keyof typeof NodeTypeValues];
 
 /**
  * Represents a node in the graph
@@ -31,6 +65,9 @@ export interface GraphNode {
   /** Lines of code (if applicable) */
   loc?: number;
 
+  /** Per-node metric metadata (file/function metrics or container aggregates) */
+  metadata?: NodeMetricData;
+
   /** X position for rendering */
   x?: number;
 
@@ -48,7 +85,8 @@ export interface GraphNode {
 }
 
 /**
- * Represents a link/edge between nodes
+ * Represents a link/edge between nodes.
+ * Aggregates per-dependency-type counts between a (source, target) pair.
  */
 export interface GraphLink {
   /** Source node ID */
@@ -57,26 +95,24 @@ export interface GraphLink {
   /** Target node ID */
   target: string;
 
-  /** Link strength/weight for simulation */
-  value: number;
+  /** Per-dependency-type counts (types with count 0 are omitted) */
+  counts: LinkCounts;
 
-  /** Link categorization */
-  type: LinkType;
+  /** Aggregation level: 'file' (individual entities), 'module' (directory pairs) or 'module-entity' (module to a specific entity) */
+  level?: 'file' | 'module' | 'module-entity';
+}
 
-  /** Direction if applicable */
-  direction?: LinkDirection;
-
-  /** Actual fan-in count from metrics */
-  fanIn?: number;
-
-  /** Actual fan-out count from metrics */
-  fanOut?: number;
-
-  /** Real coupling intensity */
-  couplingValue?: number;
-
-  /** Aggregation level: 'file' (default, individual imports) or 'module' (deduplicated by directory) */
-  level?: 'file' | 'module';
+/**
+ * Edge metadata for popup display
+ */
+export interface EdgeMetadata {
+  sourceName: string;
+  targetName: string;
+  counts: LinkCounts;
+  level?: 'file' | 'module' | 'module-entity';
+  bidirectional?: boolean;
+  forwardCounts?: LinkCounts;
+  reverseCounts?: LinkCounts;
 }
 
 /**
@@ -93,38 +129,30 @@ export interface HierarchicalData {
 /**
  * Render-specific node data (includes D3 simulation data)
  */
-export interface RenderNode extends GraphNode {
-  /** Radius for rendering */
+export interface RenderNode extends d3.SimulationNodeDatum {
+  id: string;
+  label: string;
+  type: NodeType;
+  parentId?: string;
   r: number;
-
-  /** Computed color */
   color: string;
-
-  /** Original data node */
   data: GraphNode;
-
-  /** D3 simulation vx */
-  vx?: number;
-
-  /** D3 simulation vy */
-  vy?: number;
-
-  /** D3 simulation x (final) */
-  x: number;
-
-  /** D3 simulation y (final) */
-  y: number;
 }
 
 /**
  * Render-specific link data
  */
-export interface RenderLink extends GraphLink {
-  /** Computed opacity for rendering */
-  opacity?: number;
-
-  /** Computed width for rendering */
-  width?: number;
+export interface RenderLink extends d3.SimulationLinkDatum<RenderNode> {
+  source: RenderNode;
+  target: RenderNode;
+  /** Combined weight of all counts (for simulation and coloring) */
+  value: number;
+  /** Per-dependency-type counts */
+  counts: LinkCounts;
+  bidirectional?: boolean;
+  /** Forward/reverse split when the rendered edge is bidirectional */
+  forwardCounts?: LinkCounts;
+  reverseCounts?: LinkCounts;
 }
 
 /**
@@ -149,3 +177,39 @@ export interface Enclosure {
   /** Fill color */
   color: string;
 }
+
+/**
+ * Physics simulation configuration
+ */
+export interface PhysicsConfig {
+  chargeStrength: number;
+  linkDistance: number;
+  centerStrength: number;
+  collidePadding: number;
+  collideIterations: number;
+  clusterStrength?: number;
+  enclosurePushForce?: number;
+  enclosureLeashForce?: number;
+}
+
+/**
+ * Legend item for graph legend
+ */
+export interface LegendItem {
+  colorClass: string;
+  label: string;
+}
+
+/**
+ * Tree view item for hierarchy panel
+ */
+export interface TreeItem {
+  node: GraphNode;
+  depth: number;
+  hasChildren: boolean;
+}
+
+/**
+ * Functional node ID alias
+ */
+export type FNodeId = string;

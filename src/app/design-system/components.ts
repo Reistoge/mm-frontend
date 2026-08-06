@@ -7,9 +7,12 @@ export const components = {
   // Button Variants
   button: {
     primary: 'px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition',
-    primarySmall: 'px-3 py-1.5 rounded-xl text-sm bg-blue-600 text-white hover:bg-blue-700 transition',
-    secondary: 'px-3 py-1.5 rounded-xl text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 transition',
-    success: 'px-3 py-1.5 rounded-xl text-sm bg-emerald-600 text-white border-emerald-600 transition',
+    primarySmall:
+      'px-3 py-1.5 rounded-xl text-sm bg-blue-600 text-white hover:bg-blue-700 transition',
+    secondary:
+      'px-3 py-1.5 rounded-xl text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 transition',
+    success:
+      'px-3 py-1.5 rounded-xl text-sm bg-emerald-600 text-white border-emerald-600 transition',
     danger: 'px-3 py-1.5 rounded-lg bg-red-600 text-white',
     dangerSmall: 'px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold',
     icon: 'px-3 py-2 bg-white/90 backdrop-blur border border-slate-200 rounded-lg shadow-md text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5',
@@ -45,7 +48,8 @@ export const components = {
 
   // Legend/Indicator
   legend: {
-    container: 'absolute top-4 left-4 bg-white/90 backdrop-blur p-4 rounded-lg shadow-md text-sm border border-slate-100 max-w-xs z-10',
+    container:
+      'absolute top-4 left-4 bg-white/90 backdrop-blur p-4 rounded-lg shadow-md text-sm border border-slate-100 max-w-xs z-10',
     row: 'flex items-center gap-2',
     indicator: 'w-3 h-3 rounded-full',
     text: 'text-slate-600',
@@ -65,7 +69,8 @@ export const components = {
   // Loading State
   loading: {
     overlay: 'absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50',
-    spinner: 'w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2',
+    spinner:
+      'w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2',
     text: 'text-indigo-600 font-medium',
   },
 
@@ -75,5 +80,6 @@ export const components = {
   },
 
   // Download Button
-  downloadButton: 'px-3 py-2 bg-white/90 backdrop-blur border border-slate-200 rounded-lg shadow-md text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5',
+  downloadButton:
+    'px-3 py-2 bg-white/90 backdrop-blur border border-slate-200 rounded-lg shadow-md text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5',
 };
