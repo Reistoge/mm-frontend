@@ -3,6 +3,7 @@ import { forkJoin, map, Observable, of, catchError } from 'rxjs';
 import { MetricsService } from './metrics.service';
 import { GraphHierarchyBuilderService } from './graph-hierarchy-builder.service';
 import { GraphLinkAggregatorService } from './graph-link-aggregator.service';
+import { NodeMetricBuilderService } from './node-metric-builder.service';
 import { HierarchicalData } from '../types/graph.types';
 
 // Re-export for backward compatibility
@@ -19,6 +20,7 @@ export class GraphDataService {
   private metrics = inject(MetricsService);
   private hierarchyBuilder = inject(GraphHierarchyBuilderService);
   private linkAggregator = inject(GraphLinkAggregatorService);
+  private metricBuilder = inject(NodeMetricBuilderService);
 
   /**
    * Loads all metric data via forkJoin and builds the full graph hierarchy + links.
@@ -35,11 +37,17 @@ export class GraphDataService {
       funcs: req('functions-per-file'),
       funcCoupling: req('function-coupling'),
       fileCoupling: req('file-coupling'),
+      dependencyCentrality: req('dependency-centrality'),
+      functionLength: req('function-length'),
+      functionDependencySummary: req('function-dependency-summary'),
+      linesPerFile: req('lines-per-file'),
+      parameterCount: req('parameter-count'),
     }).pipe(map((data) => this.buildGraph(data)));
   }
 
   /**
-   * 4-step pipeline: build hierarchy -> class mapping -> function mapping -> build links.
+   * 4-step pipeline: build hierarchy -> class mapping -> function mapping ->
+   * build links -> attach per-node metric metadata.
    */
   private buildGraph(data: Record<string, unknown>): HierarchicalData {
     const { nodesMap, classToFilesMap, functionToFileMap } =
@@ -55,6 +63,8 @@ export class GraphDataService {
           { result?: Record<string, { fanIn: string[]; fanOut: string[] }> } | undefined
       )?.result,
     );
+
+    this.metricBuilder.attachMetadata(data, nodesMap);
 
     return { nodes: Array.from(nodesMap.values()), links };
   }
