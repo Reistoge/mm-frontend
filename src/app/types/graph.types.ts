@@ -27,10 +27,9 @@ export function linkTotal(counts: LinkCounts): number {
 /** Formats per-type counts for an edge label, e.g. "2 calls · 3 instantiates". */
 export function formatLinkCounts(counts: LinkCounts): string {
   const parts: string[] = [];
-  if (counts.imports) parts.push(`${counts.imports} import${counts.imports > 1 ? 's' : ''}`);
-  if (counts.calls) parts.push(`${counts.calls} call${counts.calls > 1 ? 's' : ''}`);
-  if (counts.instantiates)
-    parts.push(`${counts.instantiates} instantiate${counts.instantiates > 1 ? 's' : ''}`);
+  if (counts.imports) parts.push(`${counts.imports}`);
+  if (counts.calls) parts.push(`${counts.calls} `);
+  if (counts.instantiates) parts.push(`${counts.instantiates} `);
   return parts.join(' · ');
 }
 
