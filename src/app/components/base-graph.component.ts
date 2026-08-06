@@ -28,11 +28,13 @@ import {
   GraphNode,
   GraphLink,
   EdgeMetadata,
-  LinkType,
+  LinkCounts,
   RenderNode,
   RenderLink,
   Enclosure,
   PhysicsConfig,
+  linkTotal,
+  formatLinkCounts,
 } from '../types/graph.types';
 import { downloadSvg, downloadPng } from './common/component.utils';
 
@@ -258,7 +260,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   private updateLinksForView(layer: any) {
     const linkGroups = layer
       .selectAll('g.link')
-      .data(this.links, (d: RenderLink) => `${d.source.id}-${d.type}-${d.target.id}`);
+      .data(this.links, (d: RenderLink) => `${d.source.id}-${d.target.id}`);
 
     const linkEnter = linkGroups.enter().append('g').attr('class', 'link');
 
@@ -294,7 +296,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
     merged
       .select('text')
-      .text((d: RenderLink) => d.value)
+      .text((d: RenderLink) => formatLinkCounts(d.counts))
       .attr('x', (d: RenderLink) => (d.source.x! + d.target.x!) / 2)
       .attr('y', (d: RenderLink) => (d.source.y! + d.target.y!) / 2);
 
@@ -472,12 +474,13 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   /**
    * Filters allLinks to only those between visible nodes.
    * If a link endpoint is hidden, walks up to find the nearest visible ancestor.
-   * Aggregates parallel links by summing their value.
+   * Aggregates parallel links by merging their per-type counts.
    */
   protected rebuildLinks() {
     const visibleNodeIds = new Set(this.nodes.map((n) => n.id));
     const visibleNodeMap = new Map(this.nodes.map((n) => [n.id, n]));
     const newLinks = new Map<string, RenderLink>();
+    const minHops = new Map<string, number>();
 
     this.linkToOriginals = new Map();
 
@@ -501,26 +504,59 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       return undefined;
     };
 
+    // Hops from an original endpoint up to its resolved visible node.
+    // More specific (deeper) edges have fewer hops; aggregated file/class edges
+    // are dropped whenever a deeper edge already covers the same rendered pair.
+    const ancestorHops = (id: string, resolvedId: string): number => {
+      if (id === resolvedId) return 0;
+      let hops = 0;
+      let curr = this.allNodesMap.get(id);
+      while (curr && curr.parentId && curr.id !== resolvedId) {
+        hops++;
+        curr = this.allNodesMap.get(curr.parentId);
+      }
+      return hops;
+    };
+
+    const mergeCounts = (a: LinkCounts, b: LinkCounts): LinkCounts => {
+      const calls = (a.calls ?? 0) + (b.calls ?? 0);
+      const instantiates = (a.instantiates ?? 0) + (b.instantiates ?? 0);
+      const imports = (a.imports ?? 0) + (b.imports ?? 0);
+      const out: LinkCounts = {};
+      if (calls > 0) out.calls = calls;
+      if (instantiates > 0) out.instantiates = instantiates;
+      if (imports > 0) out.imports = imports;
+      return out;
+    };
+
     activeLinks.forEach((l) => {
       const sourceId = findVisible(l.source as string);
       const targetId = findVisible(l.target as string);
+      if (!sourceId || !targetId || sourceId === targetId) return;
 
-      if (sourceId && targetId && sourceId !== targetId) {
-        const key = `${sourceId}-${l.type}-${targetId}`;
-        if (!newLinks.has(key)) {
-          newLinks.set(key, {
-            source: visibleNodeMap.get(sourceId)!,
-            target: visibleNodeMap.get(targetId)!,
-            value: l.value,
-            type: l.type,
-          });
-        } else {
-          newLinks.get(key)!.value += l.value;
-        }
+      const key = `${sourceId}-${targetId}`;
+      const hops =
+        ancestorHops(l.source as string, sourceId) + ancestorHops(l.target as string, targetId);
+      const currentMin = minHops.get(key);
 
-        if (!this.linkToOriginals.has(key)) {
-          this.linkToOriginals.set(key, []);
-        }
+      // A coarser edge is already covered by a more specific one — skip it.
+      if (currentMin !== undefined && hops > currentMin) return;
+
+      const candidate: RenderLink = {
+        source: visibleNodeMap.get(sourceId)!,
+        target: visibleNodeMap.get(targetId)!,
+        value: linkTotal(l.counts),
+        counts: { ...l.counts },
+      };
+
+      if (currentMin === undefined || hops < currentMin) {
+        minHops.set(key, hops);
+        newLinks.set(key, candidate);
+        this.linkToOriginals.set(key, [l]);
+      } else {
+        const existing = newLinks.get(key)!;
+        existing.value += linkTotal(l.counts);
+        existing.counts = mergeCounts(existing.counts, l.counts);
         this.linkToOriginals.get(key)!.push(l);
       }
     });
@@ -530,13 +566,13 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const mergedLinks: RenderLink[] = [];
 
     for (const link of newLinks.values()) {
-      const key = `${(link.source as RenderNode).id}-${link.type}-${(link.target as RenderNode).id}`;
+      const key = `${(link.source as RenderNode).id}-${(link.target as RenderNode).id}`;
       if (processedKeys.has(key)) continue;
       processedKeys.add(key);
 
       const srcId = (link.source as RenderNode).id;
       const tgtId = (link.target as RenderNode).id;
-      const reverseKey = `${tgtId}-${link.type}-${srcId}`;
+      const reverseKey = `${tgtId}-${srcId}`;
 
       if (newLinks.has(reverseKey) && key !== reverseKey) {
         processedKeys.add(reverseKey);
@@ -545,6 +581,9 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
         if (srcId < tgtId) {
           link.value += reverseLink.value;
           link.bidirectional = true;
+          link.forwardCounts = { ...link.counts };
+          link.reverseCounts = { ...reverseLink.counts };
+          link.counts = mergeCounts(link.counts, reverseLink.counts);
 
           const reverseOriginals = this.linkToOriginals.get(reverseKey);
           if (reverseOriginals) {
@@ -556,6 +595,9 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
         } else {
           reverseLink.value += link.value;
           reverseLink.bidirectional = true;
+          reverseLink.forwardCounts = { ...reverseLink.counts };
+          reverseLink.reverseCounts = { ...link.counts };
+          reverseLink.counts = mergeCounts(reverseLink.counts, link.counts);
 
           const currentOriginals = this.linkToOriginals.get(key);
           if (currentOriginals) {
@@ -684,7 +726,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Handles edge number click — toggles popup with aggregated edge metadata.
    */
   private handleEdgeClick(event: MouseEvent, link: RenderLink): void {
-    const key = `${(link.source as RenderNode).id}-${link.type}-${(link.target as RenderNode).id}`;
+    const key = `${(link.source as RenderNode).id}-${(link.target as RenderNode).id}`;
     const originals = this.linkToOriginals.get(key) || [];
 
     const sourceNode = this.allNodesMap.get((link.source as RenderNode).id);
@@ -693,21 +735,14 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     const metadata: EdgeMetadata = {
       sourceName: sourceNode?.label || (link.source as RenderNode).id,
       targetName: targetNode?.label || (link.target as RenderNode).id,
-      linkType: link.type as LinkType,
-      value: link.value,
+      counts: link.counts,
       level: originals.find((l) => l.level)?.level,
     };
 
     if (link.bidirectional) {
       metadata.bidirectional = true;
-      const sourceId = (link.source as RenderNode).id;
-      const targetId = (link.target as RenderNode).id;
-      metadata.forwardValue = originals
-        .filter((l) => l.source === sourceId && l.target === targetId)
-        .reduce((sum, l) => sum + l.value, 0);
-      metadata.reverseValue = originals
-        .filter((l) => l.source === targetId && l.target === sourceId)
-        .reduce((sum, l) => sum + l.value, 0);
+      metadata.forwardCounts = link.forwardCounts;
+      metadata.reverseCounts = link.reverseCounts;
     }
 
     const current = this.edgePopup();

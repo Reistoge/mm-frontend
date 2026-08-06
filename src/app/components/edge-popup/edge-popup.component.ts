@@ -1,7 +1,17 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EdgeMetadata, LinkType } from '../../types/graph.types';
+import {
+  EdgeMetadata,
+  LinkCounts,
+  LinkTypeValues,
+  formatLinkCounts,
+} from '../../types/graph.types';
 import { components, spacing } from '../../design-system';
+
+interface TypeBadge {
+  label: string;
+  class: string;
+}
 
 @Component({
   selector: 'app-edge-popup',
@@ -33,25 +43,28 @@ import { components, spacing } from '../../design-system';
         <span [class]="labelClass">{{ metadata.targetName }}</span>
       </div>
 
-      <div [class]="badgeRow">
-        <span [class]="typeBadge(metadata.linkType)">{{ metadata.linkType }}</span>
-        <span [class]="valueBadge">{{ metadata.value }}</span>
-      </div>
+      @if (typeBadges.length > 0) {
+        <div [class]="badgeRow">
+          @for (badge of typeBadges; track badge.label) {
+            <span [class]="badge.class">{{ badge.label }}</span>
+          }
+        </div>
+      }
 
-      @if (metadata.bidirectional) {
+      @if (metadata.bidirectional && metadata.forwardCounts && metadata.reverseCounts) {
         <div [class]="detailRow">
           <span [class]="detailItem">Direction: <strong>Bidirectional</strong></span>
         </div>
         <div [class]="detailRow">
           <span [class]="detailItem"
             >{{ metadata.sourceName }} → {{ metadata.targetName }}:
-            <strong>{{ metadata.forwardValue }}</strong></span
+            <strong>{{ format(metadata.forwardCounts) }}</strong></span
           >
         </div>
         <div [class]="detailRow">
           <span [class]="detailItem"
             >{{ metadata.targetName }} → {{ metadata.sourceName }}:
-            <strong>{{ metadata.reverseValue }}</strong></span
+            <strong>{{ format(metadata.reverseCounts) }}</strong></span
           >
         </div>
       }
@@ -79,15 +92,45 @@ export class EdgePopupComponent {
   flexBetween = 'flex items-center justify-between';
   labelClass = 'font-semibold text-slate-800 truncate max-w-[120px]';
   badgeRow = 'flex items-center gap-2 mt-2';
-  valueBadge = 'bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full';
   detailRow = 'flex items-center gap-3 mt-1.5 text-slate-600';
   detailItem = 'text-xs';
 
-  typeBadge(type: LinkType): string {
-    const colors: Record<LinkType, string> = {
-      DEPENDENCY: 'bg-amber-100 text-amber-700',
-      COUPLING: 'bg-blue-100 text-blue-700',
+  get typeBadges(): TypeBadge[] {
+    const badges: TypeBadge[] = [];
+    const counts = this.metadata.counts ?? {};
+    const imports = counts[LinkTypeValues.IMPORTS] ?? 0;
+    const calls = counts[LinkTypeValues.CALL] ?? 0;
+    const instantiates = counts[LinkTypeValues.INSTANTIATE] ?? 0;
+    if (imports > 0) {
+      badges.push({
+        label: `${imports} import${imports > 1 ? 's' : ''}`,
+        class: this.badgeClass(LinkTypeValues.IMPORTS),
+      });
+    }
+    if (calls > 0) {
+      badges.push({
+        label: `${calls} call${calls > 1 ? 's' : ''}`,
+        class: this.badgeClass(LinkTypeValues.CALL),
+      });
+    }
+    if (instantiates > 0) {
+      badges.push({
+        label: `${instantiates} instantiate${instantiates > 1 ? 's' : ''}`,
+        class: this.badgeClass(LinkTypeValues.INSTANTIATE),
+      });
+    }
+    return badges;
+  }
+
+  format(counts: LinkCounts): string {
+    return formatLinkCounts(counts);
+  }
+
+  private badgeClass(type: string): string {
+    const colors: Record<string, string> = {
       CALL: 'bg-emerald-100 text-emerald-700',
+      INSTANTIATE: 'bg-blue-100 text-blue-700',
+      IMPORTS: 'bg-amber-100 text-amber-700',
     };
     return `${colors[type] || 'bg-gray-100 text-gray-700'} text-xs font-bold px-2 py-0.5 rounded-full`;
   }

@@ -3,15 +3,7 @@ import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 import { BaseGraphComponent } from '../base-graph.component';
 import { D3_CONFIG } from '../../config/d3-config';
-import {
-  NodeTypeValues,
-  NodeType,
-  PhysicsConfig,
-  Enclosure,
-  RenderNode,
-  RenderLink,
-  LegendItem,
-} from '../../types/graph.types';
+import { NodeType, PhysicsConfig, Enclosure, LegendItem } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
 import { GraphWrapperComponent } from '../graph-wrapper/graph-wrapper.component';
 
@@ -93,103 +85,5 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
     });
 
     return enclosures;
-  }
-
-  override rebuildLinks(): void {
-    const visibleNodeIds = new Set(this.nodes.map((n) => n.id));
-    const visibleNodeMap = new Map(this.nodes.map((n) => [n.id, n]));
-    const newLinks = new Map<string, RenderLink>();
-
-    this.linkToOriginals = new Map();
-
-    // Determine view level: when only DIRECTORY nodes are visible,
-    // show deduplicated module-level links. Once any non-directory
-    // (FILE/CLASS/FUNCTION) appears, show file-level links.
-    const isModuleView = this.nodes.every((n) => n.type === NodeTypeValues.DIRECTORY);
-
-    const activeLinks = isModuleView
-      ? this.allLinks.filter((l) => l.level === 'module')
-      : this.allLinks.filter((l) => !l.level || l.level === 'file');
-
-    const findVisible = (id: string): string | undefined => {
-      if (visibleNodeIds.has(id)) return id;
-      let curr = this.allNodesMap.get(id);
-      while (curr && curr.parentId) {
-        if (visibleNodeIds.has(curr.parentId)) return curr.parentId;
-        curr = this.allNodesMap.get(curr.parentId);
-      }
-      return undefined;
-    };
-
-    activeLinks.forEach((l) => {
-      const sourceId = findVisible(l.source as string);
-      const targetId = findVisible(l.target as string);
-      if (sourceId && targetId && sourceId !== targetId) {
-        const key = `${sourceId}-${l.type}-${targetId}`;
-        const couplingValue = (l.fanIn ?? 0) + (l.fanOut ?? 0);
-        if (!newLinks.has(key)) {
-          newLinks.set(key, {
-            source: visibleNodeMap.get(sourceId)!,
-            target: visibleNodeMap.get(targetId)!,
-            value: isModuleView ? l.value : couplingValue || l.value || 1,
-            type: l.type,
-          });
-        } else {
-          newLinks.get(key)!.value += isModuleView ? l.value : couplingValue || l.value || 1;
-        }
-
-        if (!this.linkToOriginals.has(key)) {
-          this.linkToOriginals.set(key, []);
-        }
-        this.linkToOriginals.get(key)!.push(l);
-      }
-    });
-
-    // Merge bidirectional pairs (A→B + B→A) into single rendered edges
-    const processedKeys = new Set<string>();
-    const mergedLinks: RenderLink[] = [];
-
-    for (const link of newLinks.values()) {
-      const key = `${(link.source as RenderNode).id}-${link.type}-${(link.target as RenderNode).id}`;
-      if (processedKeys.has(key)) continue;
-      processedKeys.add(key);
-
-      const srcId = (link.source as RenderNode).id;
-      const tgtId = (link.target as RenderNode).id;
-      const reverseKey = `${tgtId}-${link.type}-${srcId}`;
-
-      if (newLinks.has(reverseKey) && key !== reverseKey) {
-        processedKeys.add(reverseKey);
-        const reverseLink = newLinks.get(reverseKey)!;
-
-        if (srcId < tgtId) {
-          link.value += reverseLink.value;
-          link.bidirectional = true;
-
-          const reverseOriginals = this.linkToOriginals.get(reverseKey);
-          if (reverseOriginals) {
-            const originals = this.linkToOriginals.get(key)!;
-            originals.push(...reverseOriginals);
-          }
-
-          mergedLinks.push(link);
-        } else {
-          reverseLink.value += link.value;
-          reverseLink.bidirectional = true;
-
-          const currentOriginals = this.linkToOriginals.get(key);
-          if (currentOriginals) {
-            const originals = this.linkToOriginals.get(reverseKey)!;
-            originals.push(...currentOriginals);
-          }
-
-          mergedLinks.push(reverseLink);
-        }
-      } else {
-        mergedLinks.push(link);
-      }
-    }
-
-    this.links = mergedLinks;
   }
 }
