@@ -185,3 +185,7 @@
   >
   </app-edge-popup>
 }
+
+@if (nodePopupData) {
+  <app-node-popup [node]="nodePopupData.node" [position]="nodePopupData.position"> </app-node-popup>
+}

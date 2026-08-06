@@ -7,6 +7,7 @@
   [allNodes]="allNodes"
   [hiddenNodes]="hiddenNodes()"
   [edgePopupData]="edgePopup()"
+  [nodePopupData]="nodePopup()"
   (closeEdgePopup)="edgePopup.set(null)"
   (separationChange)="separation.set($event); updateSeparation($event)"
   (expandAll)="expandAll()"

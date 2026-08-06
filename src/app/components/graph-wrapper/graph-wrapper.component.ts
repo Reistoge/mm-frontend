@@ -12,11 +12,12 @@ import { GraphNode, EdgeMetadata, LegendItem } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
 import { GraphTreeModalComponent } from '../graph-tree-modal/graph-tree-modal.component';
 import { EdgePopupComponent } from '../edge-popup/edge-popup.component';
+import { NodePopupComponent } from '../node-popup/node-popup.component';
 
 @Component({
   selector: 'app-graph-wrapper',
   standalone: true,
-  imports: [CommonModule, GraphTreeModalComponent, EdgePopupComponent],
+  imports: [CommonModule, GraphTreeModalComponent, EdgePopupComponent, NodePopupComponent],
   templateUrl: './graph-wrapper.component.html',
 })
 export class GraphWrapperComponent implements OnDestroy {
@@ -30,6 +31,7 @@ export class GraphWrapperComponent implements OnDestroy {
   @Input() hiddenNodes = new Set<string>();
   @Input() edgePopupData: { metadata: EdgeMetadata; position: { x: number; y: number } } | null =
     null;
+  @Input() nodePopupData: { node: GraphNode; position: { x: number; y: number } } | null = null;
 
   @Output() separationChange = new EventEmitter<number>();
   @Output() closeEdgePopup = new EventEmitter<void>();

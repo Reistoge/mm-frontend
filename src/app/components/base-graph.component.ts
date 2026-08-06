@@ -36,6 +36,7 @@ import {
   linkTotal,
   formatLinkCounts,
 } from '../types/graph.types';
+import type { NodeMetricData } from '../types/metrics.types';
 import { downloadSvg, downloadPng } from './common/component.utils';
 
 /**
@@ -71,6 +72,16 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     position: { x: number; y: number };
   } | null>(null);
   private popupLink: RenderLink | null = null;
+
+  /** Pinned node inspection popup, opened by clicking the lens icon. */
+  readonly nodePopup = signal<{
+    node: GraphNode;
+    position: { x: number; y: number };
+  } | null>(null);
+  private popupNode: GraphNode | null = null;
+  private popupRenderNode: RenderNode | null = null;
+  private hoveredNodeId: string | null = null;
+  private lensHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Internal state
   protected allNodesMap = new Map<string, GraphNode>();
@@ -111,6 +122,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   }
 
   ngOnDestroy() {
+    if (this.lensHideTimer) clearTimeout(this.lensHideTimer);
     if (this.simulation) this.simulation.stop();
   }
 
@@ -204,11 +216,13 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
         }),
     );
 
-    // Close edge popup when clicking on graph background
-    zoomLayer.on('click', (e: MouseEvent) => {
-      if (e.target === zoomLayer.node()) {
+    // Close popups when clicking on the graph background (svg canvas or zoom layer).
+    // Node/link/enclosure clicks bubble here too but target their own elements.
+    this.svg.on('click', (e: MouseEvent) => {
+      if (e.target === this.svg.node() || e.target === zoomLayer.node()) {
         this.edgePopup.set(null);
         this.popupLink = null;
+        this.closeNodePopup();
       }
     });
 
@@ -304,7 +318,8 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   }
 
   /**
-   * Renders/updates node circles with labels, drag behavior, and click handler.
+   * Renders/updates node circles with labels, a hover-revealed lens icon, drag behavior,
+   * and click handlers.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateNodes(layer: any) {
@@ -336,7 +351,17 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
             node.fy = null;
           }),
       )
-      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d));
+      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d))
+      .on('mouseenter', (e: MouseEvent, d: RenderNode) => {
+        this.hoveredNodeId = d.id;
+        this.cancelLensHide();
+        if (this.hasMetadata(d.data.metadata)) {
+          d3.select(e.currentTarget as SVGGElement)
+            .select('g.lens')
+            .style('display', null);
+        }
+      })
+      .on('mouseleave', () => this.scheduleLensHide());
 
     nodeEnter
       .append('circle')
@@ -354,10 +379,58 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .style('font-size', '10px')
       .style('pointer-events', 'none');
 
-    nodeSel
+    // Lens icon shown on hover; click pins the node inspection popup.
+    const lensEnter = nodeEnter
+      .append('g')
+      .attr('class', 'lens')
+      .style('display', 'none')
+      .style('pointer-events', 'all');
+
+    lensEnter
+      .append('circle')
+      .attr('r', 8)
+      .attr('fill', '#f8fafc')
+      .attr('stroke', '#94a3b8')
+      .attr('stroke-width', 1)
+      .style('cursor', 'pointer');
+
+    lensEnter
+      .append('text')
+      .text('i')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '0.35em')
+      .attr('font-size', '10px')
+      .attr('font-weight', 'bold')
+      .attr('fill', '#475569')
+      .style('pointer-events', 'none');
+
+    // Position the lens once next to the label's right edge (static per node).
+    lensEnter.each(function (this: SVGGElement, d: RenderNode) {
+      const parent = this.parentNode as SVGGElement;
+      const textEl = parent.querySelector('text') as SVGTextElement | null;
+      const tw = textEl ? textEl.getComputedTextLength() : 0;
+      d3.select(this).attr('transform', `translate(${tw / 2 + 8}, ${d.r + 9})`);
+    });
+
+    lensEnter.on('click', (event: MouseEvent, d: RenderNode) => {
+      event.stopPropagation();
+      this.toggleNodePopup(d);
+    });
+
+    lensEnter
+      .on('mouseenter', () => this.cancelLensHide())
+      .on('mouseleave', () => this.scheduleLensHide());
+
+    const merged = nodeSel
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .merge(nodeEnter as any)
       .attr('transform', (d: RenderNode) => `translate(${d.x},${d.y})`);
+
+    merged
+      .select('g.lens')
+      .style('display', (d: RenderNode) =>
+        d.id === this.hoveredNodeId && this.hasMetadata(d.data.metadata) ? null : 'none',
+      );
 
     nodeSel.exit().remove();
   }
@@ -648,6 +721,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   protected handleNodeClick(event: MouseEvent, node: RenderNode) {
     this.edgePopup.set(null);
     this.popupLink = null;
+    this.closeNodePopup();
 
     const original = this.allNodesMap.get(node.id);
     if (!original || !original.children || original.children.length === 0) return;
@@ -685,6 +759,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   protected updateSimulationState() {
     this.edgePopup.set(null);
     this.popupLink = null;
+    this.closeNodePopup();
     this.rebuildLinks();
     this.simulation!.nodes(this.nodes);
     (this.simulation!.force('link') as d3.ForceLink<RenderNode, RenderLink>).links(this.links);
@@ -692,34 +767,115 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   }
 
   /**
-   * Recalculates the popup position from the link midpoint using SVG zoom/pan transform.
+   * Recalculates popup positions from SVG coordinates using the zoom/pan transform.
+   * Keeps both the edge popup (link midpoint) and the node popup (node position)
+   * anchored while panning, zooming, and during simulation movement.
    */
   private updatePopupPosition(): void {
-    const current = this.edgePopup();
-    if (!current || !this.popupLink) return;
-    const link = this.popupLink;
-
-    const src = link.source as RenderNode;
-    const tgt = link.target as RenderNode;
-    const midX = (src.x! + tgt.x!) / 2;
-    const midY = (src.y! + tgt.y!) / 2;
-
-    const svgEl = this.svg.node() as SVGSVGElement;
-    const zoomLayerEl = svgEl.querySelector('.zoom-layer') as SVGGraphicsElement;
-    if (!zoomLayerEl) return;
+    const svgEl = this.svg.node() as SVGSVGElement | null;
+    const zoomLayerEl = svgEl?.querySelector('.zoom-layer') as SVGGraphicsElement | null;
+    if (!svgEl || !zoomLayerEl) return;
 
     const ctm = zoomLayerEl.getScreenCTM();
     if (!ctm) return;
 
-    const pt = svgEl.createSVGPoint();
-    pt.x = midX;
-    pt.y = midY;
-    const screenPt = pt.matrixTransform(ctm);
+    const toScreen = (x: number, y: number): { x: number; y: number } => {
+      const pt = svgEl.createSVGPoint();
+      pt.x = x;
+      pt.y = y;
+      const screenPt = pt.matrixTransform(ctm);
+      return { x: screenPt.x, y: screenPt.y };
+    };
 
-    this.edgePopup.set({
-      metadata: current.metadata,
-      position: { x: screenPt.x, y: screenPt.y - 8 },
+    const current = this.edgePopup();
+    if (current && this.popupLink) {
+      const link = this.popupLink;
+      const src = link.source as RenderNode;
+      const tgt = link.target as RenderNode;
+      const mid = toScreen((src.x! + tgt.x!) / 2, (src.y! + tgt.y!) / 2);
+      this.edgePopup.set({
+        metadata: current.metadata,
+        position: { x: mid.x, y: mid.y - 8 },
+      });
+    }
+
+    const nodeCur = this.nodePopup();
+    if (nodeCur && this.popupRenderNode) {
+      const pos = toScreen(this.popupRenderNode.x!, this.popupRenderNode.y!);
+      this.nodePopup.set({
+        node: nodeCur.node,
+        position: { x: pos.x, y: pos.y },
+      });
+    }
+  }
+
+  /** Pins/unpins the node inspection popup for the given rendered node. */
+  private toggleNodePopup(node: RenderNode): void {
+    const current = this.nodePopup();
+    if (current && current.node.id === node.id) {
+      this.closeNodePopup();
+      return;
+    }
+    this.popupNode = node.data;
+    this.popupRenderNode = node;
+    this.nodePopup.set({
+      node: node.data,
+      position: { x: node.x!, y: node.y! },
     });
+    this.updatePopupPosition();
+  }
+
+  /** Closes the node inspection popup and clears its anchors. */
+  protected closeNodePopup(): void {
+    this.nodePopup.set(null);
+    this.popupNode = null;
+    this.popupRenderNode = null;
+  }
+
+  /** True when the node carries any metric metadata worth inspecting. */
+  private hasMetadata(meta?: NodeMetricData): boolean {
+    if (!meta) return false;
+    return (
+      !!meta.dependencyCentrality ||
+      !!meta.linesPerFile ||
+      !!meta.functionLength ||
+      !!meta.dependencySummary ||
+      !!meta.parameterCount ||
+      !!meta.sums ||
+      !!meta.averages
+    );
+  }
+
+  /**
+   * Defers lens hiding so the pointer can travel from the node to the lens icon
+   * (which sits in empty SVG space beside the label) without it vanishing first.
+   */
+  private scheduleLensHide(): void {
+    if (this.lensHideTimer) clearTimeout(this.lensHideTimer);
+    this.lensHideTimer = setTimeout(() => {
+      this.lensHideTimer = null;
+      if (this.hoveredNodeId !== null) {
+        this.hoveredNodeId = null;
+        this.applyLensVisibility();
+      }
+    }, 300);
+  }
+
+  private cancelLensHide(): void {
+    if (this.lensHideTimer) {
+      clearTimeout(this.lensHideTimer);
+      this.lensHideTimer = null;
+    }
+  }
+
+  /** Re-applies lens visibility from hoveredNodeId (used outside simulation ticks). */
+  private applyLensVisibility(): void {
+    if (!this.svg) return;
+    d3.select(this.svg.node())
+      .selectAll<SVGGElement, RenderNode>('g.lens')
+      .style('display', (d) =>
+        d.id === this.hoveredNodeId && this.hasMetadata(d.data.metadata) ? null : 'none',
+      );
   }
 
   /**
