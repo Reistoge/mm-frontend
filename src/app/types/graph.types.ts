@@ -4,6 +4,7 @@
  */
 
 import * as d3 from 'd3';
+import type { NodeMetricData } from './metrics.types';
 
 export const LinkTypeValues = {
   CALL: 'calls',
@@ -63,6 +64,9 @@ export interface GraphNode {
 
   /** Lines of code (if applicable) */
   loc?: number;
+
+  /** Per-node metric metadata (file/function metrics or container aggregates) */
+  metadata?: NodeMetricData;
 
   /** X position for rendering */
   x?: number;
