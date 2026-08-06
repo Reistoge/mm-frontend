@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChartRendererService } from '../../../services/chart-renderer.service';
 
@@ -16,16 +16,17 @@ import { ChartRendererService } from '../../../services/chart-renderer.service';
 
       <!-- Metric tabs -->
       <div class="flex gap-2 border-b mb-4 overflow-x-auto">
-        <button
-          *ngFor="let metricKey of metricKeys"
-          (click)="selectMetric(metricKey)"
-          [class.border-b-2]="activeMetric() === metricKey"
-          [class.border-emerald-600]="activeMetric() === metricKey"
-          [class.text-emerald-600]="activeMetric() === metricKey"
-          class="px-3 py-2 text-sm whitespace-nowrap hover:text-emerald-600"
-        >
-          {{ metricKey }}
-        </button>
+        @for (metricKey of metricKeys; track metricKey) {
+          <button
+            (click)="selectMetric(metricKey)"
+            [class.border-b-2]="activeMetric() === metricKey"
+            [class.border-emerald-600]="activeMetric() === metricKey"
+            [class.text-emerald-600]="activeMetric() === metricKey"
+            class="px-3 py-2 text-sm whitespace-nowrap hover:text-emerald-600"
+          >
+            {{ metricKey }}
+          </button>
+        }
       </div>
 
       <!-- Subtabs: JSON / Charts -->
@@ -51,35 +52,37 @@ import { ChartRendererService } from '../../../services/chart-renderer.service';
       </div>
 
       <!-- Content: JSON view -->
-      <div *ngIf="activeSubtab() === 'json'" class="bg-gray-50 rounded-lg p-4">
-        <pre class="text-xs overflow-auto max-h-96">{{ getMetricData() | json }}</pre>
-      </div>
+      @if (activeSubtab() === 'json') {
+        <div class="bg-gray-50 rounded-lg p-4">
+          <pre class="text-xs overflow-auto max-h-96">{{ getMetricData() | json }}</pre>
+        </div>
+      }
 
       <!-- Content: Chart view -->
-      <div *ngIf="activeSubtab() === 'charts'" class="bg-gray-50 rounded-lg p-4">
-        <div
-          [id]="'chart-' + activeMetric()"
-          [style.height.px]="400"
-          *ngIf="chartStatus()[activeMetric()] === 'ok'"
-        ></div>
-        <div *ngIf="chartStatus()[activeMetric()] === 'empty'" class="text-gray-500 text-center py-8">
-          No numeric data available for chart
+      @if (activeSubtab() === 'charts') {
+        <div class="bg-gray-50 rounded-lg p-4">
+          @if (chartStatus()[activeMetric()] === 'ok') {
+            <div [id]="'chart-' + activeMetric()" [style.height.px]="400"></div>
+          }
+          @if (chartStatus()[activeMetric()] === 'empty') {
+            <div class="text-gray-500 text-center py-8">No numeric data available for chart</div>
+          }
+          @if (chartStatus()[activeMetric()] === 'error') {
+            <div class="text-red-600 text-center py-8">Error rendering chart</div>
+          }
+          @if (!chartStatus()[activeMetric()]) {
+            <div class="text-gray-400 text-center py-8">Select a metric to view chart</div>
+          }
         </div>
-        <div *ngIf="chartStatus()[activeMetric()] === 'error'" class="text-red-600 text-center py-8">
-          Error rendering chart
-        </div>
-        <div *ngIf="!chartStatus()[activeMetric()]" class="text-gray-400 text-center py-8">
-          Select a metric to view chart
-        </div>
-      </div>
+      }
     </div>
-  `
+  `,
 })
-export class MetricsTabsComponent {
+export class MetricsTabsComponent implements OnDestroy {
   private chartRenderer = inject(ChartRendererService);
 
   @Input() metricKeys: string[] = [];
-  @Input() metricsData: Record<string, any> = {};
+  @Input() metricsData: Record<string, unknown> = {};
   @Output() metricChanged = new EventEmitter<string>();
   @Output() subtabChanged = new EventEmitter<'json' | 'charts'>();
 
@@ -103,7 +106,7 @@ export class MetricsTabsComponent {
     }
   }
 
-  getMetricData(): any {
+  getMetricData(): unknown {
     return this.metricsData[this.activeMetric()] ?? null;
   }
 
@@ -114,7 +117,7 @@ export class MetricsTabsComponent {
     const status = this.chartRenderer.renderChart(
       this.activeMetric(),
       data,
-      'chart-' + this.activeMetric()
+      'chart-' + this.activeMetric(),
     );
 
     const currentStatus = this.chartStatus();

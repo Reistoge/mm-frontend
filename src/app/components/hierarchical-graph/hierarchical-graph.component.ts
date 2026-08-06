@@ -1,16 +1,17 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BaseGraphComponent, PhysicsConfig } from '../base-graph.component';
+import { BaseGraphComponent } from '../base-graph.component';
 import { D3_CONFIG } from '../../config/d3-config';
 import { graphs, colors } from '../../design-system';
-import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrapper.component';
+import { GraphWrapperComponent } from '../graph-wrapper/graph-wrapper.component';
+import { PhysicsConfig, LegendItem } from '../../types/graph.types';
 
 @Component({
   selector: 'app-hierarchical-graph',
   standalone: true,
   imports: [CommonModule, GraphWrapperComponent],
   templateUrl: './hierarchical-graph.component.html',
-  styleUrls: ['./hierarchical-graph.component.css']
+  styleUrls: ['./hierarchical-graph.component.css'],
 })
 export class HierarchicalGraphComponent extends BaseGraphComponent {
   graphs = graphs;
@@ -46,16 +47,17 @@ export class HierarchicalGraphComponent extends BaseGraphComponent {
       DIRECTORY: 35,
       FILE: 20,
       CLASS: 12,
-      FUNCTION: 6
+      FUNCTION: 6,
     };
   }
 
   override filterNodesAndLinks(): void {
     const hidden = this.hiddenNodes();
-    const rootNodes = Array.from(this.allNodesMap.values())
-      .filter(n => !n.parentId && !hidden.has(n.id));
+    const rootNodes = Array.from(this.allNodesMap.values()).filter(
+      (n) => !n.parentId && !hidden.has(n.id),
+    );
 
-    this.nodes = rootNodes.map(n => this.createRenderNode(n));
+    this.nodes = rootNodes.map((n) => this.createRenderNode(n));
     this.rebuildLinks();
   }
 }

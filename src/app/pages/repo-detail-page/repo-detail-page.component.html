@@ -1,35 +1,55 @@
 <div class="mx-auto p-6">
   <a routerLink="/repos" class="text-sm text-blue-600 hover:underline">← Volver</a>
 
-
-
   <!-- Metrics Tabs Component -->
 
   <div class="my-3">
     <app-reports-navbar [(selected)]="selectedReport"> </app-reports-navbar>
   </div>
-  <!-- 🔹 Contenedor del reporte seleccionado -->
-  <div *ngIf="selectedReport() as rSel" class="my-6">
-    <ng-container [ngSwitch]="rSel">
-
-      <app-hierarchical-graph *ngSwitchCase="'hierarchical-graph'" [repoId]="repo()!.id" [reloadTrigger]="scanVersion()"
-        (openDetailsModal)="showDetailsModal.set(true)" (runScan)="runScan()">
-      </app-hierarchical-graph>
-
-      <app-module-class-graph *ngSwitchCase="'module-class-graph'" [repoId]="repo()!.id" [reloadTrigger]="scanVersion()"
-        (openDetailsModal)="showDetailsModal.set(true)" (runScan)="runScan()">
-      </app-module-class-graph>
-
-      <app-module-function-graph *ngSwitchCase="'module-function-graph'" [repoId]="repo()!.id"
-        [reloadTrigger]="scanVersion()" (openDetailsModal)="showDetailsModal.set(true)" (runScan)="runScan()">
-      </app-module-function-graph>
-
-    </ng-container>
-  </div>
-
+  @if (selectedReport(); as rSel) {
+    <div class="my-6">
+      @switch (rSel) {
+        @case ('hierarchical-graph') {
+          <app-hierarchical-graph
+            [repoId]="repo()!.id"
+            [reloadTrigger]="scanVersion()"
+            (openDetailsModal)="showDetailsModal.set(true)"
+            (runScan)="runScan()"
+          >
+          </app-hierarchical-graph>
+        }
+        @case ('module-class-graph') {
+          <app-module-class-graph
+            [repoId]="repo()!.id"
+            [reloadTrigger]="scanVersion()"
+            (openDetailsModal)="showDetailsModal.set(true)"
+            (runScan)="runScan()"
+          >
+          </app-module-class-graph>
+        }
+        @case ('module-function-graph') {
+          <app-module-function-graph
+            [repoId]="repo()!.id"
+            [reloadTrigger]="scanVersion()"
+            (openDetailsModal)="showDetailsModal.set(true)"
+            (runScan)="runScan()"
+          >
+          </app-module-function-graph>
+        }
+      }
+    </div>
+  }
 </div>
 
 <!-- Details Modal -->
-<app-details-component [isOpen]="showDetailsModal()" [repo]="repo()" [scan]="scan()" [loading]="loading()"
-  [error]="error()" (runScan)="runScan()" (downloadScanJson)="downloadScanJson()" (close)="showDetailsModal.set(false)">
+<app-details-component
+  [isOpen]="showDetailsModal()"
+  [repo]="repo()"
+  [scan]="scan()"
+  [loading]="loading()"
+  [error]="error()"
+  (runScan)="runScan()"
+  (downloadScanJson)="downloadScanJson()"
+  (closed)="showDetailsModal.set(false)"
+>
 </app-details-component>

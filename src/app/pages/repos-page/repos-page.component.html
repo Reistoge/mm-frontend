@@ -3,65 +3,89 @@
 
   <!-- Add -->
   <div [class]="components.card.default + ' ' + spacing.marginBottom.lg">
-    <label [class]="typography.body.sm + ' font-medium ' + spacing.marginBottom.sm + ' block'">Agregar repo por URL (git)</label>
+    <label
+      for="git-url-input"
+      [class]="typography.body.sm + ' font-medium ' + spacing.marginBottom.sm + ' block'"
+      >Agregar repo por URL (git)</label
+    >
     <div [class]="'flex gap-2'">
       <input
+        id="git-url-input"
         [class]="components.input.default"
         placeholder="https://github.com/usuario/proyecto.git"
         [value]="gitUrl()"
-        (input)="gitUrl.set(($any($event.target)).value || '')"
+        (input)="gitUrl.set($any($event.target).value || '')"
       />
-      <button [class]="components.button.primary"
-              (click)="addRepo()"
-              [disabled]="loading()">
+      <button [class]="components.button.primary" (click)="addRepo()" [disabled]="loading()">
         Agregar
       </button>
     </div>
   </div>
 
   <!-- States -->
-  <div *ngIf="loading()" [class]="'text-gray-600 ' + spacing.marginBottom.md">Cargando...</div>
-  <div *ngIf="error()" [class]="'text-red-600 ' + spacing.marginBottom.md">{{ error() }}</div>
+  @if (loading()) {
+    <div [class]="'text-gray-600 ' + spacing.marginBottom.md">Cargando...</div>
+  }
+  @if (error()) {
+    <div [class]="'text-red-600 ' + spacing.marginBottom.md">{{ error() }}</div>
+  }
 
   <!-- List -->
-  <div [class]="components.grid.responsive" *ngIf="repos() as list">
-    <div *ngFor="let r of list" [class]="components.card.default">
-      <div [class]="'flex items-start justify-between gap-3'">
-        <div>
-          <a [routerLink]="['/repos', r.id]" [class]="'text-lg font-semibold hover:underline'">
-            {{ r.fullName || r.id }}
-          </a>
-          <div [class]="'text-xs text-gray-500 break-all'">
-            {{ r.codePath }}
+  @if (repos(); as list) {
+    <div [class]="components.grid.responsive">
+      @for (r of list; track r.id) {
+        <div [class]="components.card.default">
+          <div [class]="'flex items-start justify-between gap-3'">
+            <div>
+              <a [routerLink]="['/repos', r.id]" [class]="'text-lg font-semibold hover:underline'">
+                {{ r.fullName || r.id }}
+              </a>
+              <div [class]="'text-xs text-gray-500 break-all'">
+                {{ r.codePath }}
+              </div>
+            </div>
+            <button
+              [class]="components.button.dangerSmall"
+              (click)="deleteRepo(r.id)"
+              [disabled]="loading()"
+            >
+              Eliminar
+            </button>
+          </div>
+
+          <div [class]="'mt-3 text-sm text-gray-700'">
+            @if (r.stats) {
+              <div>
+                <div>
+                  Archivos: <strong>{{ r.stats.files }}</strong>
+                </div>
+                <div>
+                  Líneas: <strong>{{ r.stats.lines }}</strong>
+                </div>
+                <div>
+                  Imports/Exports: <strong>{{ r.stats.imports }}</strong> /
+                  <strong>{{ r.stats.exports }}</strong>
+                </div>
+              </div>
+            }
+            @if (r.scannedAt) {
+              <div [class]="'text-xs text-gray-500 mt-1'">
+                Último scan: {{ r.scannedAt | date: 'short' }}
+              </div>
+            }
+          </div>
+
+          <div [class]="'mt-3'">
+            <a [routerLink]="['/repos', r.id]" [class]="components.link.primary">
+              Ver detalles y ejecutar scanner →
+            </a>
           </div>
         </div>
-        <button [class]="components.button.dangerSmall"
-                (click)="deleteRepo(r.id)"
-                [disabled]="loading()">
-          Eliminar
-        </button>
-      </div>
-
-      <div [class]="'mt-3 text-sm text-gray-700'">
-        <div *ngIf="r.stats">
-          <div>Archivos: <strong>{{ r.stats.files }}</strong></div>
-          <div>Líneas: <strong>{{ r.stats.lines }}</strong></div>
-          <div>Imports/Exports: <strong>{{ r.stats.imports }}</strong> / <strong>{{ r.stats.exports }}</strong></div>
-        </div>
-        <div *ngIf="r.scannedAt" [class]="'text-xs text-gray-500 mt-1'">
-          Último scan: {{ r.scannedAt | date:'short' }}
-        </div>
-      </div>
-
-      <div [class]="'mt-3'">
-        <a [routerLink]="['/repos', r.id]" [class]="components.link.primary">
-          Ver detalles y ejecutar scanner →
-        </a>
-      </div>
+      }
     </div>
-  </div>
+  }
 
-  <div *ngIf="repos() && repos()!.length === 0" [class]="'text-gray-600'">
-    No hay repos aún. Agrega uno arriba.
-  </div>
+  @if (repos() && repos()!.length === 0) {
+    <div [class]="'text-gray-600'">No hay repos aún. Agrega uno arriba.</div>
+  }
 </div>

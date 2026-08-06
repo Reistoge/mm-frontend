@@ -1,26 +1,30 @@
-/** Function-coupling analysis utilities: graph, adjacency matrix, top-K. */
+import { FNodeId } from '../types/graph.types';
 
-export type FNodeId = string; // "file::func"
+/** Function-coupling analysis utilities: graph, adjacency matrix, top-K. */
 
 /**
  * Builds nodes + edges + degree maps from function-coupling data.
  * Node ID format: "filePath::functionName".
  */
-export function buildFunctionGraph(fc: Record<string, any>) {
+export function buildFunctionGraph(
+  fc: Record<
+    string,
+    Record<string, { 'fan-out'?: Record<string, number>; 'fan-in'?: Record<string, number> }>
+  >,
+) {
   const nodesSet = new Set<FNodeId>();
-  const edges: Array<{ source: FNodeId; target: FNodeId; value: number }> = [];
+  const edges: { source: FNodeId; target: FNodeId; value: number }[] = [];
 
   // 1) recolectar nodos y aristas
-  for (const [file, funcs] of Object.entries(fc || {})) {
-    for (const [fname, obj] of Object.entries<any>(funcs || {})) {
+  for (const [file, funcs] of Object.entries(fc ?? {})) {
+    for (const [fname, obj] of Object.entries(funcs ?? {})) {
       const id = `${file}::${fname}`;
       nodesSet.add(id);
 
-      const fanOut: Record<string, number> = obj?.['fan-out'] || {};
+      const fanOut: Record<string, number> = obj['fan-out'] ?? {};
       for (const [callee, w] of Object.entries(fanOut)) {
         // asumimos que el callee está en el MISMO archivo salvo que venga calificado; ajusta si tienes nombres calificados
-        const targetId =
-          callee.includes('::') ? callee : `${file}::${callee}`;
+        const targetId = callee.includes('::') ? callee : `${file}::${callee}`;
         nodesSet.add(targetId);
         edges.push({ source: id, target: targetId, value: Number(w) || 1 });
       }
@@ -30,14 +34,17 @@ export function buildFunctionGraph(fc: Record<string, any>) {
   // 2) grados
   const fanIn = new Map<FNodeId, number>();
   const fanOutDeg = new Map<FNodeId, number>();
-  for (const n of nodesSet) { fanIn.set(n, 0); fanOutDeg.set(n, 0); }
+  for (const n of nodesSet) {
+    fanIn.set(n, 0);
+    fanOutDeg.set(n, 0);
+  }
   for (const e of edges) {
     fanOutDeg.set(e.source, (fanOutDeg.get(e.source) || 0) + 1);
     fanIn.set(e.target, (fanIn.get(e.target) || 0) + 1);
   }
 
   // 3) metadatos auxiliares
-  const nodes = Array.from(nodesSet).map(id => {
+  const nodes = Array.from(nodesSet).map((id) => {
     const [file, func] = id.split('::');
     return {
       id,
@@ -76,12 +83,16 @@ export function shortenFunc(id: string) {
 /**
  * Builds an N×N adjacency matrix from function edge data (for heatmap visualization).
  */
-export function adjacencyForHeatmap(nodes: {id: string}[], edges: {source: string; target: string; value: number}[]) {
-  const ids = nodes.map(n => n.id);
+export function adjacencyForHeatmap(
+  nodes: { id: string }[],
+  edges: { source: string; target: string; value: number }[],
+) {
+  const ids = nodes.map((n) => n.id);
   const index = new Map(ids.map((id, i) => [id, i]));
   const mat = Array.from({ length: ids.length }, () => Array(ids.length).fill(0));
   for (const e of edges) {
-    const i = index.get(e.source); const j = index.get(e.target);
+    const i = index.get(e.source);
+    const j = index.get(e.target);
     if (i != null && j != null) mat[i][j] += e.value || 1;
   }
   return { ids, mat };

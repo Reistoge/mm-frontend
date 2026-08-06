@@ -17,11 +17,7 @@ export class ChartRendererService {
    * Renders a bar chart for the given metric data.
    * Returns 'ok' | 'empty' | 'error' status.
    */
-  renderChart(
-    chartKey: string,
-    data: any,
-    containerId: string
-  ): 'ok' | 'empty' | 'error' {
+  renderChart(chartKey: string, data: unknown, containerId: string): 'ok' | 'empty' | 'error' {
     try {
       // Extract numeric pairs from data
       const pairs = this.extractNumericPairs(data);
@@ -38,8 +34,8 @@ export class ChartRendererService {
       // Get top 20 items and sort
       pairs.sort((a, b) => b.value - a.value);
       const top = pairs.slice(0, 20);
-      const names = top.map(d => d.name);
-      const values = top.map(d => d.value);
+      const names = top.map((d) => d.name);
+      const values = top.map((d) => d.value);
 
       // Get or create chart
       const el = document.getElementById(containerId);
@@ -70,14 +66,12 @@ export class ChartRendererService {
   /**
    * Extracts numeric key-value pairs from first level of object.
    */
-  private extractNumericPairs(
-    data: any
-  ): Array<{ name: string; value: number }> {
-    const pairs: Array<{ name: string; value: number }> = [];
+  private extractNumericPairs(data: unknown): { name: string; value: number }[] {
+    const pairs: { name: string; value: number }[] = [];
 
     if (data && typeof data === 'object' && !Array.isArray(data)) {
       for (const k of Object.keys(data)) {
-        const v = (data as any)[k];
+        const v = (data as Record<string, unknown>)[k];
         if (typeof v === 'number' && Number.isFinite(v)) {
           pairs.push({ name: k, value: v });
         }
@@ -91,19 +85,19 @@ export class ChartRendererService {
    * Attempts to infer numeric values from nested objects
    * by checking for common field names (count, fanIn, fanOut, etc.)
    */
-  private inferNumericPairs(
-    data: any
-  ): Array<{ name: string; value: number }> {
+  private inferNumericPairs(data: unknown): { name: string; value: number }[] {
     const candFields = ['count', 'fanIn', 'fanOut', 'size', 'lines', 'total', 'degree'];
-    const inferred: Array<{ name: string; value: number }> = [];
+    const inferred: { name: string; value: number }[] = [];
 
-    for (const k of Object.keys(data)) {
-      const v = (data as any)[k];
+    for (const k of Object.keys(data as Record<string, unknown>)) {
+      const v = (data as Record<string, unknown>)[k];
       if (v && typeof v === 'object') {
         const f = candFields.find(
-          fk => typeof v[fk] === 'number' && Number.isFinite(v[fk])
+          (fk) =>
+            typeof (v as Record<string, unknown>)[fk] === 'number' &&
+            Number.isFinite((v as Record<string, unknown>)[fk]),
         );
-        if (f) inferred.push({ name: k, value: v[f] });
+        if (f) inferred.push({ name: k, value: (v as Record<string, unknown>)[f] as number });
       }
     }
 

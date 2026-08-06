@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReposService } from '../../services/repos.service';
@@ -14,7 +14,7 @@ import { components, colors, spacing, typography } from '../../design-system';
 /**
  * Page listing all repos with add/delete functionality.
  */
-export class ReposPageComponent {
+export class ReposPageComponent implements OnInit {
   private reposService = inject(ReposService);
 
   // Design System
@@ -36,8 +36,14 @@ export class ReposPageComponent {
     this.loading.set(true);
     this.error.set(null);
     this.reposService.getRepos().subscribe({
-      next: (data) => { this.repos.set(data); this.loading.set(false); },
-      error: (e) => { this.error.set(e?.message ?? 'Error cargando repos'); this.loading.set(false); }
+      next: (data) => {
+        this.repos.set(data);
+        this.loading.set(false);
+      },
+      error: (e) => {
+        this.error.set(e?.message ?? 'Error cargando repos');
+        this.loading.set(false);
+      },
     });
   }
 
@@ -46,8 +52,14 @@ export class ReposPageComponent {
     if (!url) return;
     this.loading.set(true);
     this.reposService.addRepo(url).subscribe({
-      next: () => { this.gitUrl.set(''); this.load(); },
-      error: (e) => { this.error.set(e?.error?.message ?? 'No se pudo agregar'); this.loading.set(false); }
+      next: () => {
+        this.gitUrl.set('');
+        this.load();
+      },
+      error: (e) => {
+        this.error.set(e?.error?.message ?? 'No se pudo agregar');
+        this.loading.set(false);
+      },
     });
   }
 
@@ -56,7 +68,10 @@ export class ReposPageComponent {
     this.loading.set(true);
     this.reposService.deleteRepo(id).subscribe({
       next: () => this.load(),
-      error: (e) => { this.error.set(e?.error?.message ?? 'No se pudo eliminar'); this.loading.set(false); }
+      error: (e) => {
+        this.error.set(e?.error?.message ?? 'No se pudo eliminar');
+        this.loading.set(false);
+      },
     });
   }
 }

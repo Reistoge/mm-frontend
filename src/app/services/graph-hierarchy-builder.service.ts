@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
-import { GraphNode, GraphLink } from '../types/graph.types';
+import { GraphNode, NodeTypeValues } from '../types/graph.types';
 
 /**
  * Builds the node hierarchy for the graph:
  * - Directories and files from file paths
  * - Classes and methods from class metrics
  * - Standalone functions from function metrics
- * 
+ *
  * This service focuses on NODE CREATION and parent-child relationships.
  * Link aggregation is handled separately.
  */
@@ -17,7 +17,7 @@ export class GraphHierarchyBuilderService {
    * Pipeline: directories/files -> classes/methods -> standalone functions.
    * Returns the node map plus class and function lookup maps for link aggregation.
    */
-  buildHierarchy(data: any): {
+  buildHierarchy(data: Record<string, unknown>): {
     nodesMap: Map<string, GraphNode>;
     classToFilesMap: Map<string, string[]>;
     functionToFileMap: Map<string, string>;
@@ -40,13 +40,20 @@ export class GraphHierarchyBuilderService {
    * Splits file paths into directory/file hierarchy.
    * Creates DIRECTORY nodes for each path segment and FILE nodes at leaf level.
    */
-  private buildDirectories(data: any, nodesMap: Map<string, GraphNode>): void {
-    let filePaths: string[] = [];
-    if (Array.isArray(data.files)) filePaths = data.files;
-    else if (Array.isArray(data.files?.result)) filePaths = data.files.result;
-    else filePaths = Object.keys(data.dependencies?.graph || {});
+  private buildDirectories(data: Record<string, unknown>, nodesMap: Map<string, GraphNode>): void {
+    let filePaths: string[];
+    const filesVal = data['files'];
+    if (Array.isArray(filesVal)) {
+      filePaths = filesVal as string[];
+    } else if (filesVal && typeof filesVal === 'object' && 'result' in filesVal) {
+      const result = (filesVal as { result?: unknown }).result;
+      filePaths = Array.isArray(result) ? (result as string[]) : [];
+    } else {
+      const deps = data['dependencies'] as { graph?: Record<string, unknown> } | undefined;
+      filePaths = Object.keys(deps?.graph ?? {});
+    }
 
-    filePaths.forEach(path => {
+    filePaths.forEach((path) => {
       const parts = path.split('/');
       const fileName = parts.pop()!;
 
@@ -55,24 +62,24 @@ export class GraphHierarchyBuilderService {
       let depth = 0;
 
       // Create Directory Nodes
-      parts.forEach(part => {
+      parts.forEach((part) => {
         const id = currentPath ? `${currentPath}/${part}` : part;
 
         if (!nodesMap.has(id)) {
           const dirNode: GraphNode = {
             id,
             label: part,
-            type: 'DIRECTORY',
+            type: NodeTypeValues.DIRECTORY,
             parentId: parentId,
             children: [],
-            depth: depth
+            depth: depth,
           };
           nodesMap.set(id, dirNode);
 
           if (parentId) {
             const p = nodesMap.get(parentId)!;
             p.children = p.children || [];
-            if (!p.children.find(c => c.id === id)) p.children.push(dirNode);
+            if (!p.children.find((c) => c.id === id)) p.children.push(dirNode);
           }
         }
 
@@ -85,11 +92,14 @@ export class GraphHierarchyBuilderService {
       const fileNode: GraphNode = {
         id: path,
         label: fileName,
-        type: 'FILE',
+        type: NodeTypeValues.FILE,
         parentId: parentId,
         children: [],
-        loc: data.loc?.byFile?.[path]?.loc || 10,
-        depth: depth
+        loc:
+          (data['loc'] as Record<string, Record<string, { loc?: number }>> | undefined)?.[
+            'byFile'
+          ]?.[path]?.loc ?? 10,
+        depth: depth,
       };
       nodesMap.set(path, fileNode);
 
@@ -106,65 +116,71 @@ export class GraphHierarchyBuilderService {
    * Node ID format: "filePath::ClassName", methods: "filePath::ClassName::methodName".
    * Returns a map of className -> filePaths[] for resolving duplicate class names across files.
    */
-  buildClassesAndMethods(data: any, nodesMap: Map<string, GraphNode>): Map<string, string[]> {
-    const classesObj = data.classes?.result || {};
+  buildClassesAndMethods(
+    data: Record<string, unknown>,
+    nodesMap: Map<string, GraphNode>,
+  ): Map<string, string[]> {
+    const classesObj =
+      (data['classes'] as { result?: Record<string, unknown> } | undefined)?.result ?? {};
     const classToFilesMap = new Map<string, string[]>();
 
-    Object.entries(classesObj).forEach(([file, clsMap]: [string, any]) => {
+    Object.entries(classesObj).forEach(([file, clsMap]: [string, unknown]) => {
       if (!nodesMap.has(file)) return;
       const parent = nodesMap.get(file)!;
 
-      Object.entries(clsMap).forEach(([className, details]: [string, any]) => {
-        const classId = `${file}::${className}`;
+      Object.entries(clsMap as Record<string, unknown>).forEach(
+        ([className, details]: [string, unknown]) => {
+          const classId = `${file}::${className}`;
 
-        // Store class -> files mapping (allow multiple files per class name)
-        const existingFiles = classToFilesMap.get(className) || [];
-        if (!existingFiles.includes(file)) {
-          existingFiles.push(file);
-        }
-        classToFilesMap.set(className, existingFiles);
+          // Store class -> files mapping (allow multiple files per class name)
+          const existingFiles = classToFilesMap.get(className) || [];
+          if (!existingFiles.includes(file)) {
+            existingFiles.push(file);
+          }
+          classToFilesMap.set(className, existingFiles);
 
-        const node: GraphNode = {
-          id: classId,
-          label: className,
-          type: 'CLASS',
-          parentId: file,
-          children: [],
-          loc: 1,
-          depth: (parent.depth || 0) + 1
-        };
-        nodesMap.set(classId, node);
-        parent.children?.push(node);
+          const node: GraphNode = {
+            id: classId,
+            label: className,
+            type: NodeTypeValues.CLASS,
+            parentId: file,
+            children: [],
+            loc: 1,
+            depth: (parent.depth || 0) + 1,
+          };
+          nodesMap.set(classId, node);
+          parent.children?.push(node);
 
-        // Create METHOD nodes
-        const methods = details || [];
-        if (Array.isArray(methods)) {
-          methods.forEach((method: any) => {
-            let methodName = method.key?.name || 'unknown';
+          // Create METHOD nodes
+          const methods = details;
+          if (Array.isArray(methods)) {
+            methods.forEach((method: unknown) => {
+              const methodName = (method as { key?: { name?: string } }).key?.name || 'unknown';
 
-            // Normalize constructor name
-            const normalizedName = methodName === 'constructor' ? '_constructor' : methodName;
-            const methodId = `${classId}::${normalizedName}`;
+              // Normalize constructor name
+              const normalizedName = methodName === 'constructor' ? '_constructor' : methodName;
+              const methodId = `${classId}::${normalizedName}`;
 
-            const methodNode: GraphNode = {
-              id: methodId,
-              label: methodName === '_constructor' ? 'constructor' : methodName,
-              type: 'FUNCTION',
-              parentId: classId,
-              loc: 1,
-              depth: (node.depth || 0) + 1
-            };
-            nodesMap.set(methodId, methodNode);
+              const methodNode: GraphNode = {
+                id: methodId,
+                label: methodName === '_constructor' ? 'constructor' : methodName,
+                type: NodeTypeValues.FUNCTION,
+                parentId: classId,
+                loc: 1,
+                depth: (node.depth || 0) + 1,
+              };
+              nodesMap.set(methodId, methodNode);
 
-            // Map alternate names for lookup compatibility
-            if (methodName === 'constructor') {
-              nodesMap.set(`${classId}::constructor`, methodNode);
-            }
+              // Map alternate names for lookup compatibility
+              if (methodName === 'constructor') {
+                nodesMap.set(`${classId}::constructor`, methodNode);
+              }
 
-            node.children?.push(methodNode);
-          });
-        }
-      });
+              node.children?.push(methodNode);
+            });
+          }
+        },
+      );
     });
 
     return classToFilesMap;
@@ -175,18 +191,24 @@ export class GraphHierarchyBuilderService {
    * Detects class-method naming conventions to attach to the right parent.
    * Returns a map of functionName -> filePath for cross-file link resolution.
    */
-  buildStandaloneFunctions(data: any, nodesMap: Map<string, GraphNode>): Map<string, string> {
-    const funcsObj = data.funcs?.result || {};
+  buildStandaloneFunctions(
+    data: Record<string, unknown>,
+    nodesMap: Map<string, GraphNode>,
+  ): Map<string, string> {
+    const funcsObj =
+      (data['funcs'] as { result?: Record<string, unknown> } | undefined)?.result ?? {};
     const functionToFileMap = new Map<string, string>();
 
-    Object.entries(funcsObj).forEach(([file, funcMap]: [string, any]) => {
+    Object.entries(funcsObj).forEach(([file, funcMap]) => {
       if (!nodesMap.has(file)) return;
       const fileNode = nodesMap.get(file)!;
 
-      Object.keys(funcMap).forEach(funcName => {
+      Object.keys(funcMap as Record<string, unknown>).forEach((funcName) => {
         // Check if function belongs to a class (by naming convention)
-        const parentClass = fileNode.children?.find(c => 
-          c.type === 'CLASS' && (funcName.startsWith(c.label + '.') || funcName.startsWith(c.label + '::'))
+        const parentClass = fileNode.children?.find(
+          (c) =>
+            c.type === NodeTypeValues.CLASS &&
+            (funcName.startsWith(c.label + '.') || funcName.startsWith(c.label + '::')),
         );
 
         const id = `${file}::${funcName}`;
@@ -199,10 +221,10 @@ export class GraphHierarchyBuilderService {
         const node: GraphNode = {
           id,
           label,
-          type: 'FUNCTION',
+          type: NodeTypeValues.FUNCTION,
           parentId: parentId,
           loc: 1,
-          depth: (parentDepth || 0) + 1
+          depth: (parentDepth || 0) + 1,
         };
 
         nodesMap.set(id, node);

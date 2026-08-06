@@ -1,18 +1,18 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
-import { BaseGraphComponent, PhysicsConfig, Enclosure } from '../base-graph.component';
+import { BaseGraphComponent } from '../base-graph.component';
 import { D3_CONFIG } from '../../config/d3-config';
-import { NodeType } from '../../types/graph.types';
+import { NodeType, PhysicsConfig, Enclosure, LegendItem } from '../../types/graph.types';
 import { graphs, colors } from '../../design-system';
-import { GraphWrapperComponent, LegendItem } from '../graph-wrapper/graph-wrapper.component';
+import { GraphWrapperComponent } from '../graph-wrapper/graph-wrapper.component';
 
 @Component({
   selector: 'app-module-class-graph',
   standalone: true,
   imports: [CommonModule, GraphWrapperComponent],
   templateUrl: './module-class-graph.component.html',
-  styleUrls: ['./module-class-graph.component.css']
+  styleUrls: ['./module-class-graph.component.css'],
 })
 export class ModuleClassGraphComponent extends BaseGraphComponent {
   graphs = graphs;
@@ -47,16 +47,17 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
       DIRECTORY: 35,
       FILE: 20,
       CLASS: 12,
-      FUNCTION: 6
+      FUNCTION: 6,
     };
   }
 
   override filterNodesAndLinks(): void {
     const hidden = this.hiddenNodes();
-    const rootNodes = Array.from(this.allNodesMap.values())
-      .filter(n => !n.parentId && !hidden.has(n.id));
+    const rootNodes = Array.from(this.allNodesMap.values()).filter(
+      (n) => !n.parentId && !hidden.has(n.id),
+    );
 
-    this.nodes = rootNodes.map(n => this.createRenderNode(n));
+    this.nodes = rootNodes.map((n) => this.createRenderNode(n));
     this.rebuildLinks();
   }
 
@@ -64,12 +65,12 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
     const enclosures: Enclosure[] = [];
     const colorScheme = this.getColorScheme();
 
-    this.expandedNodes.forEach(parentId => {
-      const descendants = this.nodes.filter(n => this.isDescendant(n.id, parentId));
+    this.expandedNodes.forEach((parentId) => {
+      const descendants = this.nodes.filter((n) => this.isDescendant(n.id, parentId));
 
       if (descendants.length > 0) {
         const pData = this.allNodesMap.get(parentId);
-        const circle = d3.packEnclose(descendants as any);
+        const circle = d3.packEnclose(descendants as d3.PackCircle[]);
         if (circle) {
           enclosures.push({
             id: parentId,
@@ -77,58 +78,12 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
             y: circle.y,
             r: circle.r + D3_CONFIG.ENCLOSURE.PADDING,
             label: pData?.label || '',
-            color: colorScheme[pData?.type as NodeType] || '#ccc'
+            color: colorScheme[pData?.type as NodeType] || '#ccc',
           });
         }
       }
     });
 
     return enclosures;
-  }
-
-  override rebuildLinks(): void {
-    const visibleNodeIds = new Set(this.nodes.map(n => n.id));
-    const visibleNodeMap = new Map(this.nodes.map(n => [n.id, n]));
-    const newLinks = new Map<string, any>();
-
-    // Determine view level: when only DIRECTORY nodes are visible,
-    // show deduplicated module-level links. Once any non-directory
-    // (FILE/CLASS/FUNCTION) appears, show file-level links.
-    const isModuleView = this.nodes.every(n => n.type === 'DIRECTORY');
-
-    const activeLinks = isModuleView
-      ? this.allLinks.filter(l => l.level === 'module')
-      : this.allLinks.filter(l => !l.level || l.level === 'file');
-
-    const findVisible = (id: string): string | undefined => {
-      if (visibleNodeIds.has(id)) return id;
-      let curr = this.allNodesMap.get(id);
-      while (curr && curr.parentId) {
-        if (visibleNodeIds.has(curr.parentId)) return curr.parentId;
-        curr = this.allNodesMap.get(curr.parentId);
-      }
-      return undefined;
-    };
-
-    activeLinks.forEach(l => {
-      const sourceId = findVisible(l.source as string);
-      const targetId = findVisible(l.target as string);
-      if (sourceId && targetId && sourceId !== targetId) {
-        const key = `${sourceId}-${l.type}-${targetId}`;
-        const couplingValue = (l.fanIn ?? 0) + (l.fanOut ?? 0);
-        if (!newLinks.has(key)) {
-          newLinks.set(key, {
-            source: visibleNodeMap.get(sourceId)!,
-            target: visibleNodeMap.get(targetId)!,
-            value: isModuleView ? l.value : (couplingValue || l.value || 1),
-            type: l.type
-          });
-        } else {
-          newLinks.get(key)!.value += isModuleView ? l.value : (couplingValue || l.value || 1);
-        }
-      }
-    });
-
-    this.links = Array.from(newLinks.values());
   }
 }
