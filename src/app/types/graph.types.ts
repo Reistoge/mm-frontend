@@ -6,17 +6,33 @@
 import * as d3 from 'd3';
 
 export const LinkTypeValues = {
-  DEPENDENCY: 'DEPENDENCY',
-  COUPLING: 'COUPLING',
-  CALL: 'CALL',
+  CALL: 'calls',
+  INSTANTIATE: 'instantiates',
+  IMPORTS: 'imports',
 } as const;
 export type LinkType = (typeof LinkTypeValues)[keyof typeof LinkTypeValues];
 
-export const LinkDirectionValues = {
-  FAN_IN: 'fan-in',
-  FAN_OUT: 'fan-out',
-} as const;
-export type LinkDirection = (typeof LinkDirectionValues)[keyof typeof LinkDirectionValues];
+/**
+ * Per-dependency-type counts for a link. Types with count 0 are omitted.
+ * One link between a pair can carry several dependency types at once
+ * (e.g. `{ imports: 2, calls: 2, instantiates: 3 }`).
+ */
+export type LinkCounts = Partial<Record<LinkType, number>>;
+
+/** Sums all per-type counts into a single weight (for simulation/coloring). */
+export function linkTotal(counts: LinkCounts): number {
+  return (counts.calls ?? 0) + (counts.instantiates ?? 0) + (counts.imports ?? 0);
+}
+
+/** Formats per-type counts for an edge label, e.g. "2 calls · 3 instantiates". */
+export function formatLinkCounts(counts: LinkCounts): string {
+  const parts: string[] = [];
+  if (counts.imports) parts.push(`${counts.imports} import${counts.imports > 1 ? 's' : ''}`);
+  if (counts.calls) parts.push(`${counts.calls} call${counts.calls > 1 ? 's' : ''}`);
+  if (counts.instantiates)
+    parts.push(`${counts.instantiates} instantiate${counts.instantiates > 1 ? 's' : ''}`);
+  return parts.join(' · ');
+}
 
 export const NodeTypeValues = {
   DIRECTORY: 'DIRECTORY',
@@ -66,7 +82,8 @@ export interface GraphNode {
 }
 
 /**
- * Represents a link/edge between nodes
+ * Represents a link/edge between nodes.
+ * Aggregates per-dependency-type counts between a (source, target) pair.
  */
 export interface GraphLink {
   /** Source node ID */
@@ -75,23 +92,11 @@ export interface GraphLink {
   /** Target node ID */
   target: string;
 
-  /** Link strength/weight for simulation */
-  value: number;
+  /** Per-dependency-type counts (types with count 0 are omitted) */
+  counts: LinkCounts;
 
-  /** Link categorization */
-  type: LinkType;
-
-  /** Direction if applicable */
-  direction?: LinkDirection;
-
-  /** Actual fan-in count from metrics */
-  fanIn?: number;
-
-  /** Actual fan-out count from metrics */
-  fanOut?: number;
-
-  /** Aggregation level: 'file' (default, individual imports) or 'module' (deduplicated by directory) */
-  level?: 'file' | 'module';
+  /** Aggregation level: 'file' (individual entities), 'module' (directory pairs) or 'module-entity' (module to a specific entity) */
+  level?: 'file' | 'module' | 'module-entity';
 }
 
 /**
@@ -100,12 +105,11 @@ export interface GraphLink {
 export interface EdgeMetadata {
   sourceName: string;
   targetName: string;
-  linkType: LinkType;
-  value: number;
-  level?: 'file' | 'module';
+  counts: LinkCounts;
+  level?: 'file' | 'module' | 'module-entity';
   bidirectional?: boolean;
-  forwardValue?: number;
-  reverseValue?: number;
+  forwardCounts?: LinkCounts;
+  reverseCounts?: LinkCounts;
 }
 
 /**
@@ -138,9 +142,14 @@ export interface RenderNode extends d3.SimulationNodeDatum {
 export interface RenderLink extends d3.SimulationLinkDatum<RenderNode> {
   source: RenderNode;
   target: RenderNode;
+  /** Combined weight of all counts (for simulation and coloring) */
   value: number;
-  type: string;
+  /** Per-dependency-type counts */
+  counts: LinkCounts;
   bidirectional?: boolean;
+  /** Forward/reverse split when the rendered edge is bidirectional */
+  forwardCounts?: LinkCounts;
+  reverseCounts?: LinkCounts;
 }
 
 /**
