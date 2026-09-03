@@ -98,7 +98,7 @@ export class GraphHierarchyBuilderService {
         loc:
           (data['loc'] as Record<string, Record<string, { loc?: number }>> | undefined)?.[
             'byFile'
-          ]?.[path]?.loc ?? 10,
+          ]?.[path]?.loc ?? 0,
         depth: depth,
       };
       nodesMap.set(path, fileNode);

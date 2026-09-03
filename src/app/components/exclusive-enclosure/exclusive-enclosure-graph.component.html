@@ -1,5 +1,5 @@
 <app-graph-wrapper
-  title="Module → Function Call Graph"
+  title=" Exclusive Enclosure Graph"
   [legendItems]="legendItems"
   [loading]="loading()"
   [error]="error()"
@@ -13,6 +13,7 @@
   (separationChange)="separation.set($event); updateSeparation($event)"
   (expandAll)="expandAll()"
   (collapseAll)="collapseAll()"
+  (stopExpansion)="stopExpansion()"
   (downloadSVG)="downloadSVG()"
   (downloadPNG)="downloadPNG()"
   (openTreeModal)="showTreeModal.set(true)"

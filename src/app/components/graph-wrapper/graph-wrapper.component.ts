@@ -37,6 +37,7 @@ export class GraphWrapperComponent implements OnDestroy {
   @Output() closeEdgePopup = new EventEmitter<void>();
   @Output() expandAll = new EventEmitter<void>();
   @Output() collapseAll = new EventEmitter<void>();
+  @Output() stopExpansion = new EventEmitter<void>();
   @Output() downloadSVG = new EventEmitter<void>();
   @Output() downloadPNG = new EventEmitter<void>();
   @Output() openTreeModal = new EventEmitter<void>();

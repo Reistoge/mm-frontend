@@ -18,23 +18,23 @@
           >
           </app-hierarchical-graph>
         }
-        @case ('module-class-graph') {
-          <app-module-class-graph
+        @case ('inclusive-enclosure-graph') {
+          <app-inclusive-enclosure-graph
             [repoId]="repo()!.id"
             [reloadTrigger]="scanVersion()"
             (openDetailsModal)="showDetailsModal.set(true)"
             (runScan)="runScan()"
           >
-          </app-module-class-graph>
+          </app-inclusive-enclosure-graph>
         }
-        @case ('module-function-graph') {
-          <app-module-function-graph
+        @case ('exclusive-enclosure-graph') {
+          <app-exclusive-enclosure-graph
             [repoId]="repo()!.id"
             [reloadTrigger]="scanVersion()"
             (openDetailsModal)="showDetailsModal.set(true)"
             (runScan)="runScan()"
           >
-          </app-module-function-graph>
+          </app-exclusive-enclosure-graph>
         }
       }
     </div>

@@ -50,7 +50,7 @@
           </svg>
         </button>
       </div>
-
+      <!-- aa -->
       <div class="flex-1 overflow-y-auto px-5 py-4">
         @if (loading) {
           <div [class]="colors.text.secondary + ' ' + spacing.marginBottom.lg">Cargando…</div>
@@ -60,110 +60,129 @@
             {{ error }}
           </div>
         }
-
         @if (repo; as r) {
-          <div [class]="colors.neutral.bg + ' rounded-2xl border ' + spacing.padding.md">
-            <div class="text-lg font-semibold">{{ r.fullName || r.id }}</div>
-            <div class="text-xs text-gray-500 break-all">{{ r.codePath }}</div>
+          <!-- for some reason is not applying the grid-cols-2 -->
+          <div
+            [class]="
+              colors.neutral.bg + ' rounded-2xl border flex flex-row gap-3 ' + spacing.padding.md
+            "
+          >
+            <div class="flex-1 flex flex-col gap-2">
+              <div class="text-lg font-semibold">{{ r.fullName || r.id }}</div>
+              <div class="text-xs text-gray-500 break-all">{{ r.codePath }}</div>
 
-            <div [class]="spacing.marginTop.md">
-              @if (r.stats?.byExtension; as ext) {
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                  @for (k of objectKeys(ext); track k) {
-                    <div
-                      [class]="
-                        colors.background.light + ' ' + spacing.radius.sm + ' ' + spacing.padding.xs
-                      "
+              <div [class]="spacing.marginTop.md">
+                @if (r.stats?.byExtension; as ext) {
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    @for (k of objectKeys(ext); track k) {
+                      <div
+                        [class]="
+                          colors.background.light +
+                          ' ' +
+                          spacing.radius.sm +
+                          ' ' +
+                          spacing.padding.xs
+                        "
+                      >
+                        <div [class]="colors.text.light">{{ k }}</div>
+                        <div [class]="typography.weight.semibold">{{ ext[k] }}</div>
+                      </div>
+                    }
+                    @if (objectKeys(ext).length === 0) {
+                      <div [class]="colors.text.light">—</div>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (r.scannedAt) {
+                <div [class]="spacing.marginTop.lg + ' text-xs ' + colors.text.light">
+                  Último scan: {{ r.scannedAt | date: 'short' }}
+                </div>
+              }
+
+              <div [class]="'flex ' + spacing.gap.sm">
+                <button
+                  [class]="components.button.success + ' disabled:opacity-60'"
+                  (click)="runScan.emit()"
+                  [disabled]="loading"
+                >
+                  Ejecutar scanner
+                </button>
+              </div>
+            </div>
+            <div class="flex-">
+              @if (scan; as s) {
+                <div class="mt-6" [class]="colors.neutral.bg + ' ' + spacing.padding.md">
+                  <div [class]="components.flex.between + ' ' + spacing.marginBottom.md">
+                    <h2 class="text-xl font-semibold">Resultado del scan</h2>
+                    <button
+                      [class]="'px-3 py-1.5 rounded-lg bg-gray-800 text-white hover:bg-black text-sm'"
+                      (click)="downloadScanJson.emit()"
                     >
-                      <div [class]="colors.text.light">{{ k }}</div>
-                      <div [class]="typography.weight.semibold">{{ ext[k] }}</div>
+                      Descargar JSON
+                    </button>
+                  </div>
+
+                  <div [class]="typography.body.sm + ' ' + colors.neutral.text">
+                    <div [class]="spacing.marginBottom.sm">
+                      <strong>Repo ID:</strong> {{ s.repoId }}
                     </div>
-                  }
-                  @if (objectKeys(ext).length === 0) {
-                    <div [class]="colors.text.light">—</div>
-                  }
+                    <div [class]="spacing.marginBottom.sm">
+                      <strong>Scanned At:</strong> {{ s.scannedAt | date: 'short' }}
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-3">
+                      <div
+                        [class]="
+                          colors.background.light +
+                          ' ' +
+                          spacing.radius.md +
+                          ' ' +
+                          spacing.padding.sm
+                        "
+                      >
+                        <div [class]="colors.text.light + ' ' + typography.body.xs">Archivos</div>
+                        <div class="text-lg font-bold">{{ s.stats.files }}</div>
+                      </div>
+                      <div
+                        [class]="
+                          colors.background.light +
+                          ' ' +
+                          spacing.radius.md +
+                          ' ' +
+                          spacing.padding.sm
+                        "
+                      >
+                        <div [class]="colors.text.light + ' ' + typography.body.xs">Líneas</div>
+                        <div class="text-lg font-bold">{{ s.stats.lines }}</div>
+                      </div>
+                      <div
+                        [class]="
+                          colors.background.light +
+                          ' ' +
+                          spacing.radius.md +
+                          ' ' +
+                          spacing.padding.sm
+                        "
+                      >
+                        <div [class]="colors.text.light + ' ' + typography.body.xs">
+                          Imports / Exports
+                        </div>
+                        <div class="text-lg font-bold">
+                          {{ s.stats.imports }} / {{ s.stats.exports }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               }
             </div>
-
-            @if (r.scannedAt) {
-              <div [class]="spacing.marginTop.lg + ' text-xs ' + colors.text.light">
-                Último scan: {{ r.scannedAt | date: 'short' }}
-              </div>
-            }
-
-            <div [class]="'mt-2 flex ' + spacing.gap.sm">
-              <button
-                [class]="components.button.success + ' disabled:opacity-60'"
-                (click)="runScan.emit()"
-                [disabled]="loading"
-              >
-                Ejecutar scanner
-              </button>
-            </div>
-
-            @if (scan; as s) {
-              <div
-                class="mt-6"
-                [class]="colors.neutral.bg + ' rounded-2xl border ' + spacing.padding.md"
-              >
-                <div [class]="components.flex.between + ' ' + spacing.marginBottom.md">
-                  <h2 class="text-xl font-semibold">Resultado del scan</h2>
-                  <button
-                    [class]="'px-3 py-1.5 rounded-lg bg-gray-800 text-white hover:bg-black text-sm'"
-                    (click)="downloadScanJson.emit()"
-                  >
-                    Descargar JSON
-                  </button>
-                </div>
-
-                <div [class]="typography.body.sm + ' ' + colors.neutral.text">
-                  <div [class]="spacing.marginBottom.sm">
-                    <strong>Repo ID:</strong> {{ s.repoId }}
-                  </div>
-                  <div [class]="spacing.marginBottom.sm">
-                    <strong>Scanned At:</strong> {{ s.scannedAt | date: 'short' }}
-                  </div>
-
-                  <div class="grid md:grid-cols-3 gap-3">
-                    <div
-                      [class]="
-                        colors.background.light + ' ' + spacing.radius.md + ' ' + spacing.padding.sm
-                      "
-                    >
-                      <div [class]="colors.text.light + ' ' + typography.body.xs">Archivos</div>
-                      <div class="text-lg font-bold">{{ s.stats.files }}</div>
-                    </div>
-                    <div
-                      [class]="
-                        colors.background.light + ' ' + spacing.radius.md + ' ' + spacing.padding.sm
-                      "
-                    >
-                      <div [class]="colors.text.light + ' ' + typography.body.xs">Líneas</div>
-                      <div class="text-lg font-bold">{{ s.stats.lines }}</div>
-                    </div>
-                    <div
-                      [class]="
-                        colors.background.light + ' ' + spacing.radius.md + ' ' + spacing.padding.sm
-                      "
-                    >
-                      <div [class]="colors.text.light + ' ' + typography.body.xs">
-                        Imports / Exports
-                      </div>
-                      <div class="text-lg font-bold">
-                        {{ s.stats.imports }} / {{ s.stats.exports }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-
-            @if (scan) {
-              <app-metrics-tabs [metricKeys]="getMetricKeys()" [metricsData]="getMetricsData()">
-              </app-metrics-tabs>
-            }
           </div>
+          @if (scan) {
+            <app-metrics-tabs [metricKeys]="getMetricKeys()" [metricsData]="getMetricsData()">
+            </app-metrics-tabs>
+          }
         }
       </div>
     </div>

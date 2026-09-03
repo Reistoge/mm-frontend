@@ -101,21 +101,21 @@ export class EdgePopupComponent {
     const imports = counts[LinkTypeValues.IMPORTS] ?? 0;
     const calls = counts[LinkTypeValues.CALL] ?? 0;
     const instantiates = counts[LinkTypeValues.INSTANTIATE] ?? 0;
-    if (imports > 0) {
+    if (imports >= 0) {
       badges.push({
-        label: `${imports} import${imports > 1 ? 's' : ''}`,
+        label: `${imports} import${imports > 0 ? 's' : ''}`,
         class: this.badgeClass(LinkTypeValues.IMPORTS),
       });
     }
-    if (calls > 0) {
+    if (calls >= 0) {
       badges.push({
-        label: `${calls} call${calls > 1 ? 's' : ''}`,
+        label: `${calls} call${calls > 0 ? 's' : ''}`,
         class: this.badgeClass(LinkTypeValues.CALL),
       });
     }
-    if (instantiates > 0) {
+    if (instantiates >= 0) {
       badges.push({
-        label: `${instantiates} instantiate${instantiates > 1 ? 's' : ''}`,
+        label: `${instantiates} instantiate${instantiates > 0 ? 's' : ''}`,
         class: this.badgeClass(LinkTypeValues.INSTANTIATE),
       });
     }

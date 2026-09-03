@@ -72,6 +72,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     position: { x: number; y: number };
   } | null>(null);
   private popupLink: RenderLink | null = null;
+  expandFlag = signal(false);
 
   /** Pinned node inspection popup, opened by clicking the lens icon. */
   readonly nodePopup = signal<{
@@ -1020,6 +1021,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Expands every expandable node in batches (5 per 500ms) for animated reveal.
    */
   expandAll() {
+    this.expandFlag.set(true);
     const nodesToExpand: string[] = [];
 
     this.allNodesMap.forEach((node) => {
@@ -1035,6 +1037,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       const batch = nodesToExpand.slice(i, i + batchSize);
 
       setTimeout(() => {
+        if (!this.expandFlag()) return;
         batch.forEach((nodeId) => {
           const nodeData = this.allNodesMap.get(nodeId);
           if (!nodeData) return;
@@ -1060,6 +1063,14 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       }, delay);
 
       delay += 500;
+    }
+  }
+  /**
+   * Stop the expansion by changing the value of expand signal see expandAll()
+   */
+  stopExpansion() {
+    if (this.expandFlag() == true) {
+      this.expandFlag.set(false);
     }
   }
 

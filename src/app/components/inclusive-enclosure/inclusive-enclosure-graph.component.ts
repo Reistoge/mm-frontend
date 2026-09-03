@@ -8,13 +8,13 @@ import { graphs, colors } from '../../design-system';
 import { GraphWrapperComponent } from '../graph-wrapper/graph-wrapper.component';
 
 @Component({
-  selector: 'app-module-class-graph',
+  selector: 'app-inclusive-enclosure-graph',
   standalone: true,
   imports: [CommonModule, GraphWrapperComponent],
-  templateUrl: './module-class-graph.component.html',
-  styleUrls: ['./module-class-graph.component.css'],
+  templateUrl: './inclusive-enclosure-graph.component.html',
+  styleUrls: ['./inclusive-enclosure-graph.component.css'],
 })
-export class ModuleClassGraphComponent extends BaseGraphComponent {
+export class InclusiveEnclosureGraphComponent extends BaseGraphComponent {
   graphs = graphs;
   colors = colors;
   showTreeModal = signal(false);
@@ -23,6 +23,7 @@ export class ModuleClassGraphComponent extends BaseGraphComponent {
     { colorClass: graphs.node.folder, label: 'Folder' },
     { colorClass: graphs.node.file, label: 'File' },
     { colorClass: graphs.node.class, label: 'Class' },
+    { colorClass: graphs.node.function, label: 'Function' },
   ];
 
   override getPhysicsConfig(): PhysicsConfig {

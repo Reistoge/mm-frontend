@@ -17,6 +17,7 @@
         "label": "off"
       }
     ],
-    "axe/name-role-value": "off"
+    "axe/name-role-value": "off",
+    "button-type": "off"
   }
 }

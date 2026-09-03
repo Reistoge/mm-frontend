@@ -10,10 +10,10 @@ import { ReportKey } from '../../types/common.types';
 import { Observable } from 'rxjs';
 
 import { HierarchicalGraphComponent } from '../../components/hierarchical-graph/hierarchical-graph.component';
-import { ModuleClassGraphComponent } from '../../components/module-class-graph/module-class-graph.component';
-import { ModuleFunctionGraphComponent } from '../../components/module-function-graph/module-function-graph.component';
+import { ExclusiveEnclosureGraphComponent } from '../../components/exclusive-enclosure/exclusive-enclosure-graph.component';
 import { DetailsComponent } from './components/details.component';
 import { ChartRendererService } from '../../services/chart-renderer.service';
+import { InclusiveEnclosureGraphComponent } from '../../components/inclusive-enclosure/inclusive-enclosure-graph.component';
 
 /**
  * Main page for repository details and metrics visualization.
@@ -27,8 +27,8 @@ import { ChartRendererService } from '../../services/chart-renderer.service';
     RouterLink,
     ReportsNavbarComponent,
     HierarchicalGraphComponent,
-    ModuleClassGraphComponent,
-    ModuleFunctionGraphComponent,
+    InclusiveEnclosureGraphComponent,
+    ExclusiveEnclosureGraphComponent,
     DetailsComponent,
   ],
   templateUrl: './repo-detail-page.component.html',

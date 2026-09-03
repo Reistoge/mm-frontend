@@ -18,32 +18,11 @@
         </div>
       }
     </div>
-
     <div [class]="graphs.legend.divider">
-      <p>👉 <strong>Click a node</strong> to drill down (Expand).</p>
-      <p>👉 <strong>Click a dashed circle</strong> to go up (Collapse).</p>
-      <p>🖐 <strong>Drag</strong> to rearrange nodes.</p>
-      <p>🔍 <strong>Scroll</strong> to zoom in/out.</p>
-    </div>
-
-    <div [class]="graphs.legend.controlGroup">
-      <div [class]="graphs.slider.label">
-        <span [class]="graphs.slider.labelText">Node spacing</span>
-        <span [class]="graphs.slider.labelValue">{{ separation }}×</span>
-      </div>
-      <input
-        type="range"
-        min="0.5"
-        max="4"
-        step="0.1"
-        [value]="separation"
-        (input)="onSeparationChange($event)"
-        [class]="graphs.slider.input"
-      />
-      <div [class]="graphs.slider.range">
-        <span>Compact</span>
-        <span>Spread</span>
-      </div>
+      <p><strong>Click a node</strong> to drill down (Expand).</p>
+      <p><strong>Click a dashed circle</strong> to go up (Collapse).</p>
+      <p><strong>Drag</strong> to rearrange nodes.</p>
+      <p><strong>Scroll</strong> to zoom in/out.</p>
     </div>
 
     <div [class]="graphs.buttonGroup.container">
@@ -51,13 +30,19 @@
         (click)="expandAll.emit()"
         [class]="graphs.buttonGroup.button + ' ' + graphs.buttonGroup.expand"
       >
-        Expand All
+        Expand
+      </button>
+      <button
+        (click)="stopExpansion.emit()"
+        [class]="graphs.buttonGroup.button + ' ' + graphs.buttonGroup.collapse"
+      >
+        Stop
       </button>
       <button
         (click)="collapseAll.emit()"
         [class]="graphs.buttonGroup.button + ' ' + graphs.buttonGroup.collapse"
       >
-        Collapse All
+        Collapse
       </button>
     </div>
   </div>
@@ -112,7 +97,7 @@
       >
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
-      Tree
+      File structure
     </button>
     <button (click)="runScan.emit()" title="Run scanner" [class]="graphs.actions.button">
       <svg
@@ -152,6 +137,26 @@
       </svg>
       Details
     </button>
+    <!-- now the slider is here -->
+    <div>
+      <div [class]="graphs.slider.label">
+        <span [class]="graphs.slider.labelValue">{{ separation }}×</span>
+      </div>
+      <input
+        type="range"
+        min="0.5"
+        max="4"
+        step="0.1"
+        [value]="separation"
+        (input)="onSeparationChange($event)"
+        [class]="graphs.slider.input"
+      />
+      <div [class]="graphs.slider.range">
+        <span>Compact</span>
+        <span>Spread</span>
+      </div>
+    </div>
+    <!--  -->
   </div>
 </div>
 

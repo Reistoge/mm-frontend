@@ -26,9 +26,9 @@ export class ReportsNavbarComponent implements OnChanges {
   colors = colors;
   spacing = spacing;
   @Input() items: ReportItem[] = [
-    { key: 'hierarchical-graph', label: 'Project summary' },
-    { key: 'module-class-graph', label: 'Module-class' },
-    { key: 'module-function-graph', label: 'Module-function' },
+    // removed Project summary
+    { key: 'inclusive-enclosure-graph', label: 'Inclusive Enclosure' },
+    { key: 'exclusive-enclosure-graph', label: 'Exclusive Enclosure' },
   ];
 
   @Input() selected: ReportKey | null = null;
