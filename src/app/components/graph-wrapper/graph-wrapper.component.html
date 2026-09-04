@@ -1,6 +1,7 @@
 <div [class]="graphs.container.main">
   <ng-content></ng-content>
 
+  <!-- Legend card: top-left -->
   <div
     [class]="graphs.legend.container + ' transition-opacity duration-500'"
     [class.opacity-0]="isIdle()"
@@ -10,7 +11,7 @@
       <h3 [class]="graphs.legend.title">{{ title }}</h3>
     }
 
-    <div [class]="graphs.legend.itemsContainer">
+    <div [class]="graphs.legend.itemsContainer + ' grid grid-cols-1'">
       @for (item of legendItems; track item.label) {
         <div [class]="graphs.legend.item">
           <span [class]="item.colorClass"></span>
@@ -18,41 +19,78 @@
         </div>
       }
     </div>
-    <div [class]="graphs.legend.divider">
-      <p><strong>Click a node</strong> to drill down (Expand).</p>
-      <p><strong>Click a dashed circle</strong> to go up (Collapse).</p>
-      <p><strong>Drag</strong> to rearrange nodes.</p>
-      <p><strong>Scroll</strong> to zoom in/out.</p>
-    </div>
+    <details [class]="graphs.legend.divider">
+      <summary class="cursor-pointer select-none font-medium text-slate-600">
+        How to interact
+      </summary>
+      <div class="mt-1.5 space-y-1">
+        <p><strong>Click a node</strong> to drill down (Expand).</p>
+        <p><strong>Click a dashed circle</strong> to go up (Collapse).</p>
+        <p><strong>Drag</strong> to rearrange nodes.</p>
+        <p><strong>Scroll</strong> to zoom in/out.</p>
+      </div>
 
-    <div [class]="graphs.buttonGroup.container">
-      <button
-        (click)="expandAll.emit()"
-        [class]="graphs.buttonGroup.button + ' ' + graphs.buttonGroup.expand"
-      >
-        Expand
-      </button>
-      <button
-        (click)="stopExpansion.emit()"
-        [class]="graphs.buttonGroup.button + ' ' + graphs.buttonGroup.collapse"
-      >
-        Stop
-      </button>
-      <button
-        (click)="collapseAll.emit()"
-        [class]="graphs.buttonGroup.button + ' ' + graphs.buttonGroup.collapse"
-      >
-        Collapse
-      </button>
-    </div>
+      <div class="grid grid-cols-3 gap-1 mt-2 pt-2 border-t border-slate-100 w-full">
+        <button
+          (click)="expandAll.emit()"
+          [class]="graphs.buttonGroup.expand + ' px-2 py-1 text-xs font-semibold rounded w-full'"
+        >
+          Expand
+        </button>
+        <button
+          (click)="stopExpansion.emit()"
+          [class]="graphs.buttonGroup.collapse + ' px-2 py-1 text-xs font-semibold rounded w-full'"
+        >
+          Stop
+        </button>
+        <button
+          (click)="collapseAll.emit()"
+          [class]="
+            graphs.buttonGroup.collapse +
+            ' bg-slate-800 px-2 py-1 text-xs font-semibold rounded w-full'
+          "
+        >
+          Collapse
+        </button>
+      </div>
+    </details>
   </div>
 
+  <!-- Layout card: top-right -->
   <div
-    [class]="graphs.actions.container + ' transition-opacity duration-500'"
+    [class]="'absolute top-4 right-4 bg-white/90 backdrop-blur p-3 rounded-lg shadow-md border border-slate-200 z-10 w-40 transition-opacity duration-500'"
     [class.opacity-0]="isIdle()"
     [class.pointer-events-none]="isIdle()"
   >
-    <button (click)="downloadSVG.emit()" title="Download SVG" [class]="graphs.actions.button">
+    <div [class]="graphs.slider.label">
+      <span [class]="graphs.slider.labelValue">{{ separation }}×</span>
+    </div>
+    <input
+      type="range"
+      min="0.5"
+      max="4"
+      step="0.1"
+      [value]="separation"
+      (input)="onSeparationChange($event)"
+      [class]="graphs.slider.input"
+    />
+    <div [class]="graphs.slider.range">
+      <span>Compact</span>
+      <span>Spread</span>
+    </div>
+  </div>
+
+  <!-- Download card: bottom-left -->
+  <div
+    [class]="'absolute bottom-4 left-4 bg-white/90 backdrop-blur rounded-lg shadow-md border border-slate-200 z-10 flex transition-opacity duration-500'"
+    [class.opacity-0]="isIdle()"
+    [class.pointer-events-none]="isIdle()"
+  >
+    <button
+      (click)="downloadSVG.emit()"
+      title="Download SVG"
+      [class]="graphs.actions.button + ' rounded-r-none border-r-0'"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="w-4 h-4"
@@ -69,7 +107,11 @@
       </svg>
       SVG
     </button>
-    <button (click)="downloadPNG.emit()" title="Download PNG" [class]="graphs.actions.button">
+    <button
+      (click)="downloadPNG.emit()"
+      title="Download PNG"
+      [class]="graphs.actions.button + ' rounded-l-none'"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="w-4 h-4"
@@ -86,7 +128,19 @@
       </svg>
       PNG
     </button>
-    <button (click)="openTreeModal.emit()" title="Browse entities" [class]="graphs.actions.button">
+  </div>
+
+  <!-- Browse card: bottom-right -->
+  <div
+    [class]="'absolute bottom-4 right-4 bg-white/90 backdrop-blur rounded-lg shadow-md border border-slate-200 z-10 flex transition-opacity duration-500'"
+    [class.opacity-0]="isIdle()"
+    [class.pointer-events-none]="isIdle()"
+  >
+    <button
+      (click)="openTreeModal.emit()"
+      title="Browse entities"
+      [class]="graphs.actions.button + ' rounded-r-none border-r-0'"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="w-4 h-4"
@@ -97,9 +151,13 @@
       >
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
-      File structure
+      Files
     </button>
-    <button (click)="runScan.emit()" title="Run scanner" [class]="graphs.actions.button">
+    <button
+      (click)="runScan.emit()"
+      title="Run scanner"
+      [class]="graphs.actions.button + ' rounded-none border-r-0'"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="w-4 h-4"
@@ -119,7 +177,7 @@
     <button
       (click)="openDetailsModal.emit()"
       title="Repository details"
-      [class]="graphs.actions.button"
+      [class]="graphs.actions.button + ' rounded-l-none'"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -137,26 +195,6 @@
       </svg>
       Details
     </button>
-    <!-- now the slider is here -->
-    <div>
-      <div [class]="graphs.slider.label">
-        <span [class]="graphs.slider.labelValue">{{ separation }}×</span>
-      </div>
-      <input
-        type="range"
-        min="0.5"
-        max="4"
-        step="0.1"
-        [value]="separation"
-        (input)="onSeparationChange($event)"
-        [class]="graphs.slider.input"
-      />
-      <div [class]="graphs.slider.range">
-        <span>Compact</span>
-        <span>Spread</span>
-      </div>
-    </div>
-    <!--  -->
   </div>
 </div>
 

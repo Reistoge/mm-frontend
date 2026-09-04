@@ -65,6 +65,9 @@ export class InclusiveEnclosureGraphComponent extends BaseGraphComponent {
   override calculateEnclosures(): Enclosure[] {
     const enclosures: Enclosure[] = [];
     const colorScheme = this.getColorScheme();
+    const expandedSet = new Set(this.expandedNodes);
+
+    const encMap = new Map<string, Enclosure>();
 
     this.expandedNodes.forEach((parentId) => {
       const descendants = this.nodes.filter((n) => this.isDescendant(n.id, parentId));
@@ -73,17 +76,49 @@ export class InclusiveEnclosureGraphComponent extends BaseGraphComponent {
         const pData = this.allNodesMap.get(parentId);
         const circle = d3.packEnclose(descendants as d3.PackCircle[]);
         if (circle) {
-          enclosures.push({
+          const enc: Enclosure = {
             id: parentId,
             x: circle.x,
             y: circle.y,
             r: circle.r + D3_CONFIG.ENCLOSURE.PADDING,
             label: pData?.label || '',
             color: colorScheme[pData?.type as NodeType] || '#ccc',
-          });
+          };
+          enclosures.push(enc);
+          encMap.set(parentId, enc);
         }
       }
     });
+
+    // Second pass: ensure parent enclosures wrap child enclosures, not just raw nodes
+    for (const enc of enclosures) {
+      const childEnclosures: d3.PackCircle[] = [];
+      const nonExpandedDescendants: d3.PackCircle[] = [];
+
+      encMap.forEach((childEnc, childId) => {
+        if (childId !== enc.id && expandedSet.has(childId) && this.isDescendant(childId, enc.id)) {
+          childEnclosures.push({ x: childEnc.x, y: childEnc.y, r: childEnc.r });
+        }
+      });
+
+      if (childEnclosures.length > 0) {
+        const nonExpanded = this.nodes.filter(
+          (n) => this.isDescendant(n.id, enc.id) && !expandedSet.has(n.id),
+        );
+        nonExpanded.forEach((n) => {
+          nonExpandedDescendants.push({ x: n.x!, y: n.y!, r: n.r });
+        });
+
+        const allCircles = [...childEnclosures, ...nonExpandedDescendants];
+        const newCircle = d3.packEnclose(allCircles as d3.PackCircle[]);
+        if (newCircle) {
+          enc.x = newCircle.x;
+          enc.y = newCircle.y;
+          enc.r = newCircle.r + D3_CONFIG.ENCLOSURE.PADDING;
+          encMap.set(enc.id, enc);
+        }
+      }
+    }
 
     return enclosures;
   }
