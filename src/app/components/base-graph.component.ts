@@ -293,8 +293,13 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .style('stroke-width', '2px')
       .on('click', (event: MouseEvent, d: RenderLink) => {
         this.handleEdgeClick(event, d);
+      })
+      .on('mouseover', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'underline');
+      })
+      .on('mouseout', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'none');
       });
-
     const merged = linkGroups.merge(linkEnter);
 
     merged
@@ -352,17 +357,17 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
             node.fy = null;
           }),
       )
-      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d))
-      .on('mouseenter', (e: MouseEvent, d: RenderNode) => {
-        this.hoveredNodeId = d.id;
-        this.cancelLensHide();
-        if (this.hasMetadata(d.data.metadata)) {
-          d3.select(e.currentTarget as SVGGElement)
-            .select('g.lens')
-            .style('display', null);
-        }
-      })
-      .on('mouseleave', () => this.scheduleLensHide());
+      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d));
+    // .on('mouseenter', (e: MouseEvent, d: RenderNode) => {
+    //   this.hoveredNodeId = d.id;
+    //   this.cancelLensHide();
+    //   if (this.hasMetadata(d.data.metadata)) {
+    //     d3.select(e.currentTarget as SVGGElement)
+    //       .select('g.lens')
+    //       .style('display', null);
+    //   }
+    // })
+    // .on('mouseleave', () => this.scheduleLensHide());
 
     nodeEnter
       .append('circle')
@@ -378,49 +383,53 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .attr('text-anchor', 'middle')
       .attr('fill', '#475569')
       .style('font-size', '10px')
-      .style('pointer-events', 'none');
-
+      .style('pointer-events', 'all')
+      .on('click', (event: MouseEvent, d: RenderNode) => {
+        event.stopPropagation();
+        this.toggleNodePopup(d);
+      })
+      .on('mouseover', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'underline');
+      })
+      .on('mouseout', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'none');
+      });
     // Lens icon shown on hover; click pins the node inspection popup.
-    const lensEnter = nodeEnter
-      .append('g')
-      .attr('class', 'lens')
-      .style('display', 'none')
-      .style('pointer-events', 'all');
+    // const lensEnter = nodeEnter
+    //   .append('g')
+    //   .attr('class', 'lens')
+    //   .style('display', 'none')
+    //   .style('pointer-events', 'all');
 
-    lensEnter
-      .append('circle')
-      .attr('r', 8)
-      .attr('fill', '#f8fafc')
-      .attr('stroke', '#94a3b8')
-      .attr('stroke-width', 1)
-      .style('cursor', 'pointer');
+    // lensEnter
+    //   .append('circle')
+    //   .attr('r', 8)
+    //   .attr('fill', '#f8fafc')
+    //   .attr('stroke', '#94a3b8')
+    //   .attr('stroke-width', 1)
+    //   .style('cursor', 'pointer');
 
-    lensEnter
-      .append('text')
-      .text('i')
-      .attr('text-anchor', 'middle')
-      .attr('dy', '0.35em')
-      .attr('font-size', '10px')
-      .attr('font-weight', 'bold')
-      .attr('fill', '#475569')
-      .style('pointer-events', 'none');
+    // lensEnter
+    //   .append('text')
+    //   .text('i')
+    //   .attr('text-anchor', 'middle')
+    //   .attr('dy', '0.35em')
+    //   .attr('font-size', '10px')
+    //   .attr('font-weight', 'bold')
+    //   .attr('fill', '#475569')
+    //   .style('pointer-events', 'none');
 
-    // Position the lens once next to the label's right edge (static per node).
-    lensEnter.each(function (this: SVGGElement, d: RenderNode) {
-      const parent = this.parentNode as SVGGElement;
-      const textEl = parent.querySelector('text') as SVGTextElement | null;
-      const tw = textEl ? textEl.getComputedTextLength() : 0;
-      d3.select(this).attr('transform', `translate(${tw / 2 + 8}, ${d.r + 9})`);
-    });
+    // // Position the lens once next to the label's right edge (static per node).
+    // lensEnter.each(function (this: SVGGElement, d: RenderNode) {
+    //   const parent = this.parentNode as SVGGElement;
+    //   const textEl = parent.querySelector('text') as SVGTextElement | null;
+    //   const tw = textEl ? textEl.getComputedTextLength() : 0;
+    //   d3.select(this).attr('transform', `translate(${tw / 2 + 8}, ${d.r + 9})`);
+    // });
 
-    lensEnter.on('click', (event: MouseEvent, d: RenderNode) => {
-      event.stopPropagation();
-      this.toggleNodePopup(d);
-    });
-
-    lensEnter
-      .on('mouseenter', () => this.cancelLensHide())
-      .on('mouseleave', () => this.scheduleLensHide());
+    // lensEnter
+    //   .on('mouseenter', () => this.cancelLensHide())
+    //   .on('mouseleave', () => this.scheduleLensHide());
 
     const merged = nodeSel
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
