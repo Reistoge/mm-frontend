@@ -99,6 +99,26 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   protected hiddenNodes = signal(new Set<string>());
   protected currentEnclosures: Enclosure[] = [];
 
+  /** When true, enclosure bubbles display the full recursive parent chain path stacked vertically. */
+  protected showNodeParentText = false;
+
+  /**
+   * Builds a recursive parent chain array for a node ID by walking parentId links.
+   * Returns e.g. ["Module", "Folder"] from root to the node's immediate parent.
+   */
+  protected getNodeParentText(nodeId: string): string[] {
+    const chain: string[] = [];
+    let curr = this.allNodesMap.get(nodeId);
+    while (curr && curr.parentId) {
+      const parentData = this.allNodesMap.get(curr.parentId);
+      if (parentData) {
+        chain.unshift(parentData.label);
+      }
+      curr = this.allNodesMap.get(curr.parentId);
+    }
+    return chain;
+  }
+
   // D3 objects
   protected simulation: d3.Simulation<RenderNode, RenderLink> | null = null;
 
@@ -948,9 +968,12 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
   /**
    * Renders/updates enclosure (parent) bubbles with dashed stroke, label, and collapse-on-click.
+   * When showNodeParentText is true, renders the parent chain stacked vertically above the label.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected drawEnclosures(layer: any, enclosures: Enclosure[]) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     const sel = layer.selectAll('g.enclosure').data(enclosures, (d: Enclosure) => d.id);
 
     const enter = sel.enter().append('g').attr('class', 'enclosure');
@@ -971,8 +994,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .attr('fill', (d: Enclosure) => d.color)
       .style('font-size', '11px')
       .style('font-weight', 'bold')
-      .style('pointer-events', 'none')
-      .style('text-transform', 'uppercase');
+      .style('pointer-events', 'none');
 
     const merged = sel.merge(enter);
 
@@ -984,9 +1006,45 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
     merged
       .select('text')
-      .text((d: Enclosure) => d.label)
       .attr('x', (d: Enclosure) => d.x)
-      .attr('y', (d: Enclosure) => d.y - d.r - 8);
+      .attr('y', (d: Enclosure) => {
+        const base = d.y - d.r - 8;
+        if (self.showNodeParentText) {
+          const numParents = self.getNodeParentText(d.id).length;
+          return base - numParents * 11;
+        }
+        return base;
+      })
+      .text(null)
+
+      .each(function (this: SVGTextElement, d: Enclosure) {
+        const textEl = d3.select(this);
+        textEl.selectAll('tspan').remove();
+
+        if (self.showNodeParentText) {
+          const chain = self.getNodeParentText(d.id);
+          const lines = [...chain, d.label];
+
+          lines.forEach((line: string, lineIdx: number) => {
+            const isLast = lineIdx === lines.length - 1;
+            const tspan = textEl.append('tspan').attr('x', d.x).text(line);
+
+            if (lineIdx === 0) {
+              tspan.attr('dy', 0);
+            } else {
+              tspan.attr('dy', 11);
+            }
+
+            if (!isLast) {
+              tspan.style('font-size', '8px').style('font-weight', 'normal');
+            } else {
+              tspan.style('font-size', '11px').style('font-weight', 'bold');
+            }
+          });
+        } else {
+          textEl.append('tspan').attr('x', d.x).text(d.label);
+        }
+      });
 
     sel.exit().remove();
   }

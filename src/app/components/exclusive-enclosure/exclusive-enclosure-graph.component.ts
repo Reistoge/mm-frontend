@@ -25,6 +25,13 @@ export class ExclusiveEnclosureGraphComponent extends BaseGraphComponent {
     { colorClass: graphs.node.function, label: 'Function' },
   ];
 
+  override showNodeParentText = true;
+
+  toggleParentText(): void {
+    this.showNodeParentText = !this.showNodeParentText;
+    this.updateSimulationState();
+  }
+
   override getPhysicsConfig(): PhysicsConfig {
     return {
       chargeStrength: D3_CONFIG.PHYSICS.MODULE_FUNCTION.CHARGE_STRENGTH,
