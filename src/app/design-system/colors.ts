@@ -65,7 +65,7 @@ export const colors = {
 
   // Visualization/Graph Colors (Tailwind classes for legend dots)
   visualization: {
-    folder: 'bg-[#9a6700]',
+    folder: 'bg-[#eba924]',
     file: 'bg-[#59636e]',
     class: 'bg-[#8250df]',
     function: 'bg-[#1a7f37]',
@@ -74,7 +74,7 @@ export const colors = {
   // Visualization/Graph Colors (hex values for D3/SVG rendering).
   // Mid-tone Primer accents legible on both #fff and #0d1117 canvases.
   visualizationHex: {
-    DIRECTORY: '#9a6700',
+    DIRECTORY: '#eba924',
     FILE: '#59636e',
     CLASS: '#8250df',
     FUNCTION: '#1a7f37',

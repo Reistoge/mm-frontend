@@ -25,7 +25,7 @@ export const graphs = {
 
   // Legend Items (Node Types) — Primer hues
   node: {
-    folder: 'w-3 h-3 rounded-full bg-[#9a6700]',
+    folder: 'w-3 h-3 rounded-full bg-[#eba924]',
     file: 'w-3 h-3 rounded-full bg-[#59636e]',
     class: 'w-3 h-3 rounded-full bg-[#8250df]',
     function: 'w-3 h-3 rounded-full bg-[#1a7f37]',
