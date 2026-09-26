@@ -1,35 +1,41 @@
 /**
- * Component Patterns Design System
- * Pre-composed Tailwind classes for common UI components
+ * Component Patterns Design System — GitHub Primer styling.
+ * Flat 1px borders, 6px radius, no backdrop-blur / heavy shadows.
  */
 
 export const components = {
-  // Button Variants
+  // Button Variants (Primer Btn: 5px 16px, 14px medium, 6px radius, 1px border)
   button: {
-    primary: 'px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition',
+    primary:
+      'px-4 py-[5px] rounded-md bg-[var(--accent-emphasis)] text-white text-sm font-medium border border-[var(--borderColor-default)] hover:brightness-110 transition',
     primarySmall:
-      'px-3 py-1.5 rounded-xl text-sm bg-blue-600 text-white hover:bg-blue-700 transition',
+      'px-3 py-[3px] rounded-md text-xs bg-[var(--accent-emphasis)] text-white font-medium border border-[var(--borderColor-default)] hover:brightness-110 transition',
     secondary:
-      'px-3 py-1.5 rounded-xl text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 transition',
+      'px-3 py-[5px] rounded-md text-sm border border-[var(--borderColor-default)] bg-[var(--bgColor-default)] text-[var(--fgColor-default)] font-medium hover:bg-[var(--bgColor-muted)] transition',
     success:
-      'px-3 py-1.5 rounded-xl text-sm bg-emerald-600 text-white border-emerald-600 transition',
-    danger: 'px-3 py-1.5 rounded-lg bg-red-600 text-white',
-    dangerSmall: 'px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold',
-    icon: 'px-3 py-2 bg-white/90 backdrop-blur border border-slate-200 rounded-lg shadow-md text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5',
-    neutral: 'px-3 py-1.5 rounded-xl text-sm border transition hover:bg-gray-50',
-    neutralDark: 'px-3 py-1.5 rounded-xl text-sm bg-gray-900 text-white border-gray-900',
+      'px-3 py-[5px] rounded-md text-sm bg-[var(--success-emphasis)] text-white font-medium border border-[var(--borderColor-default)] hover:brightness-110 transition',
+    danger:
+      'px-3 py-[5px] rounded-md text-sm bg-[var(--danger-emphasis)] text-white font-medium border border-[var(--borderColor-default)] hover:brightness-110 transition',
+    dangerSmall:
+      'px-3 py-[3px] rounded-md bg-[var(--danger-emphasis)] text-white text-xs font-medium border border-[var(--borderColor-default)] hover:brightness-110 transition',
+    icon: 'px-3 py-[5px] bg-[var(--bgColor-default)] border border-[var(--borderColor-default)] rounded-md text-xs font-medium text-[var(--fgColor-default)] hover:bg-[var(--bgColor-muted)] transition-colors flex items-center gap-1.5',
+    neutral:
+      'px-3 py-[5px] rounded-md text-sm border border-[var(--borderColor-default)] bg-[var(--bgColor-default)] transition hover:bg-[var(--bgColor-muted)]',
+    neutralDark:
+      'px-3 py-[5px] rounded-md text-sm bg-[var(--bgColor-emphasis)] text-white font-medium border border-[var(--borderColor-default)]',
   },
 
-  // Card Variants
+  // Card Variants (Primer Box)
   card: {
-    default: 'bg-white rounded-2xl border p-4',
+    default:
+      'bg-[var(--bgColor-default)] rounded-md border border-[var(--borderColor-default)] p-4',
     padding: 'p-4',
     paddingSmall: 'p-3',
   },
 
-  // Container/Layout
+  // Container/Layout (GitHub page width)
   container: {
-    maxWidth: 'max-w-5xl mx-auto p-6',
+    maxWidth: 'max-w-[1280px] mx-auto px-6 py-6',
   },
 
   // Grid Layouts
@@ -46,40 +52,55 @@ export const components = {
     wrap: 'flex flex-wrap',
   },
 
-  // Legend/Indicator
+  // Legend/Indicator (Primer popover card, flat)
   legend: {
     container:
-      'absolute top-4 left-4 bg-white/90 backdrop-blur p-4 rounded-lg shadow-md text-sm border border-slate-100 max-w-xs z-10',
+      'absolute top-4 left-4 bg-[var(--bgColor-default)] p-4 rounded-md text-sm border border-[var(--borderColor-default)] max-w-xs z-10',
     row: 'flex items-center gap-2',
     indicator: 'w-3 h-3 rounded-full',
-    text: 'text-slate-600',
-    divider: 'mt-4 pt-3 border-t border-slate-100',
+    text: 'text-[var(--fgColor-muted)]',
+    divider: 'mt-4 pt-3 border-t border-[var(--borderColor-muted)]',
   },
 
-  // Input Field
+  // Input Field (Primer FormControl)
   input: {
-    default: 'flex-1 border rounded-xl px-3 py-2',
+    default:
+      'flex-1 border border-[var(--borderColor-default)] rounded-md px-3 py-[5px] text-sm bg-[var(--bgColor-default)] text-[var(--fgColor-default)] placeholder:text-[var(--fgColor-muted)] focus:outline-none focus:border-[var(--accent-fg)] focus:ring-1 focus:ring-[var(--accent-fg)]',
   },
 
   // Link
   link: {
-    primary: 'text-blue-600 hover:underline text-sm',
+    primary: 'text-[var(--accent-fg)] hover:underline text-sm',
   },
 
   // Loading State
   loading: {
-    overlay: 'absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50',
+    overlay:
+      'absolute inset-0 bg-[var(--bgColor-default)]/80 flex flex-col items-center justify-center z-50',
     spinner:
-      'w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2',
-    text: 'text-indigo-600 font-medium',
+      'w-8 h-8 border-4 border-[var(--accent-fg)] border-t-transparent rounded-full animate-spin mb-2',
+    text: 'text-[var(--accent-fg)] font-medium',
   },
 
-  // Error State
+  // Error State (Primer Banner)
   error: {
-    overlay: 'absolute inset-0 flex items-center justify-center bg-red-50/90 z-50 text-red-600',
+    overlay:
+      'absolute inset-0 flex items-center justify-center bg-[var(--danger-muted)] z-50 text-[var(--danger-fg)]',
   },
 
   // Download Button
   downloadButton:
-    'px-3 py-2 bg-white/90 backdrop-blur border border-slate-200 rounded-lg shadow-md text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5',
+    'px-3 py-[5px] bg-[var(--bgColor-default)] border border-[var(--borderColor-default)] rounded-md text-xs font-medium text-[var(--fgColor-default)] hover:bg-[var(--bgColor-muted)] transition-colors flex items-center gap-1.5',
+
+  // UnderlineNav (GitHub tab navigation)
+  tabNav: {
+    container: 'flex gap-1 border-b border-[var(--borderColor-default)] overflow-x-auto',
+    item: 'UnderlineNav-item px-3 py-2 text-sm whitespace-nowrap text-[var(--fgColor-default)] hover:bg-[var(--bgColor-muted)] rounded-t-md transition-colors',
+  },
+
+  // Counter / Label (Primer pill)
+  counter:
+    'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-[var(--counter-bg)] text-[var(--fgColor-default)] tabular',
+  label:
+    'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border border-[var(--borderColor-default)] text-[var(--fgColor-muted)]',
 };

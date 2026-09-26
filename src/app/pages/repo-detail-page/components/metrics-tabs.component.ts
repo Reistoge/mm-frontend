@@ -11,18 +11,22 @@ import { ChartRendererService } from '../../../services/chart-renderer.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="mt-6 bg-white rounded-2xl border p-4">
-      <h2 class="text-xl font-semibold mb-4">Métricas</h2>
+    <div
+      class="mt-4 bg-[var(--bgColor-default)] rounded-md border border-[var(--borderColor-default)]"
+    >
+      <div class="px-4 pt-3">
+        <h2 class="text-sm font-semibold">Metrics</h2>
+      </div>
 
-      <!-- Metric tabs -->
-      <div class="flex gap-2 border-b mb-4 overflow-x-auto">
+      <!-- Metric tabs (UnderlineNav) -->
+      <div
+        class="flex gap-1 border-b border-[var(--borderColor-default)] mt-2 px-2 overflow-x-auto"
+      >
         @for (metricKey of metricKeys; track metricKey) {
           <button
             (click)="selectMetric(metricKey)"
-            [class.border-b-2]="activeMetric() === metricKey"
-            [class.border-emerald-600]="activeMetric() === metricKey"
-            [class.text-emerald-600]="activeMetric() === metricKey"
-            class="px-3 py-2 text-sm whitespace-nowrap hover:text-emerald-600"
+            [attr.aria-selected]="activeMetric() === metricKey"
+            class="UnderlineNav-item px-3 py-2 text-sm whitespace-nowrap hover:bg-[var(--bgColor-muted)] rounded-t-md font-mono text-xs"
           >
             {{ metricKey }}
           </button>
@@ -30,22 +34,18 @@ import { ChartRendererService } from '../../../services/chart-renderer.service';
       </div>
 
       <!-- Subtabs: JSON / Charts -->
-      <div class="flex gap-4 mb-4">
+      <div class="flex gap-1 border-b border-[var(--borderColor-default)] px-2">
         <button
           (click)="selectSubtab('json')"
-          [class.text-emerald-600]="activeSubtab() === 'json'"
-          [class.border-b-2]="activeSubtab() === 'json'"
-          [class.border-emerald-600]="activeSubtab() === 'json'"
-          class="px-3 py-2 text-sm hover:text-emerald-600"
+          [attr.aria-selected]="activeSubtab() === 'json'"
+          class="UnderlineNav-item px-3 py-2 text-sm hover:bg-[var(--bgColor-muted)] rounded-t-md"
         >
           JSON
         </button>
         <button
           (click)="selectSubtab('charts')"
-          [class.text-emerald-600]="activeSubtab() === 'charts'"
-          [class.border-b-2]="activeSubtab() === 'charts'"
-          [class.border-emerald-600]="activeSubtab() === 'charts'"
-          class="px-3 py-2 text-sm hover:text-emerald-600"
+          [attr.aria-selected]="activeSubtab() === 'charts'"
+          class="UnderlineNav-item px-3 py-2 text-sm hover:bg-[var(--bgColor-muted)] rounded-t-md"
         >
           Charts
         </button>
@@ -53,25 +53,33 @@ import { ChartRendererService } from '../../../services/chart-renderer.service';
 
       <!-- Content: JSON view -->
       @if (activeSubtab() === 'json') {
-        <div class="bg-gray-50 rounded-lg p-4">
-          <pre class="text-xs overflow-auto max-h-96">{{ getMetricData() | json }}</pre>
+        <div class="p-4">
+          <pre
+            class="text-xs font-mono overflow-auto max-h-96 p-3 rounded-md bg-[var(--bgColor-muted)] border border-[var(--borderColor-muted)]"
+            >{{ getMetricData() | json }}</pre>
         </div>
       }
 
       <!-- Content: Chart view -->
       @if (activeSubtab() === 'charts') {
-        <div class="bg-gray-50 rounded-lg p-4">
+        <div class="p-4">
           @if (chartStatus()[activeMetric()] === 'ok') {
             <div [id]="'chart-' + activeMetric()" [style.height.px]="400"></div>
           }
           @if (chartStatus()[activeMetric()] === 'empty') {
-            <div class="text-gray-500 text-center py-8">No numeric data available for chart</div>
+            <div class="text-[var(--fgColor-muted)] text-sm text-center py-8">
+              No numeric data available for chart
+            </div>
           }
           @if (chartStatus()[activeMetric()] === 'error') {
-            <div class="text-red-600 text-center py-8">Error rendering chart</div>
+            <div class="text-[var(--danger-fg)] text-sm text-center py-8">
+              Error rendering chart
+            </div>
           }
           @if (!chartStatus()[activeMetric()]) {
-            <div class="text-gray-400 text-center py-8">Select a metric to view chart</div>
+            <div class="text-[var(--fgColor-muted)] text-sm text-center py-8">
+              Select a metric to view chart
+            </div>
           }
         </div>
       }

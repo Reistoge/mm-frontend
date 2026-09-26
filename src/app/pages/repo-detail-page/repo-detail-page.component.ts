@@ -8,6 +8,7 @@ import { ScanResult } from '../../models/scan-result';
 import { ReportsNavbarComponent } from '../../shared/components/reports-navbar/reports-navbar.component';
 import { ReportKey } from '../../types/common.types';
 import { Observable } from 'rxjs';
+import { components } from '../../design-system';
 
 import { HierarchicalGraphComponent } from '../../components/hierarchical-graph/hierarchical-graph.component';
 import { ExclusiveEnclosureGraphComponent } from '../../components/exclusive-enclosure/exclusive-enclosure-graph.component';
@@ -51,6 +52,7 @@ export class RepoDetailPageComponent implements OnDestroy, OnInit {
   // Report selection
   selectedReport = signal<ReportKey | null>(null);
   showDetailsModal = signal(false);
+  components = components;
 
   ngOnInit() {
     this.load();

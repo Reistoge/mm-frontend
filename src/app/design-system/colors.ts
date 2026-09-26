@@ -1,92 +1,96 @@
 /**
- * Color Design System
- * Semantic color tokens mapped to Tailwind classes
+ * Color Design System — GitHub Primer functional tokens.
+ * Classes reference CSS vars from styles.css so light/dark switch via
+ * `data-color-mode` with no `dark:` variants needed.
  */
 
 export const colors = {
-  // Primary Actions
+  // Primary Actions (Primer Btn-primary)
   primary: {
-    bg: 'bg-blue-600',
-    bgHover: 'hover:bg-blue-700',
-    text: 'text-blue-600',
-    border: 'border-blue-600',
+    bg: 'bg-[var(--accent-emphasis)]',
+    bgHover: 'hover:brightness-110',
+    text: 'text-[var(--accent-fg)]',
+    border: 'border-[var(--accent-emphasis)]',
   },
 
   // Success/Positive Actions
   success: {
-    bg: 'bg-emerald-600',
-    bgHover: 'hover:bg-emerald-700',
-    text: 'text-emerald-600',
-    border: 'border-emerald-600',
+    bg: 'bg-[var(--success-emphasis)]',
+    bgHover: 'hover:brightness-110',
+    text: 'text-[var(--success-fg)]',
+    border: 'border-[var(--success-emphasis)]',
   },
 
   // Danger/Destructive Actions
   danger: {
-    bg: 'bg-red-600',
-    bgHover: 'hover:bg-red-700',
-    text: 'text-red-600',
-    border: 'border-red-600',
+    bg: 'bg-[var(--danger-emphasis)]',
+    bgHover: 'hover:brightness-110',
+    text: 'text-[var(--danger-fg)]',
+    border: 'border-[var(--danger-emphasis)]',
   },
 
-  // Neutral/Secondary Actions
+  // Neutral/Secondary Actions (Primer Btn-default)
   neutral: {
-    bg: 'bg-white',
-    bgHover: 'hover:bg-gray-50',
-    text: 'text-gray-700',
-    border: 'border-gray-300',
-    dark: 'bg-gray-900',
-    darkHover: 'hover:bg-gray-800',
+    bg: 'bg-[var(--bgColor-default)]',
+    bgHover: 'hover:bg-[var(--bgColor-muted)]',
+    text: 'text-[var(--fgColor-default)]',
+    border: 'border-[var(--borderColor-default)]',
+    dark: 'bg-[var(--bgColor-emphasis)]',
+    darkHover: 'hover:brightness-110',
   },
 
   // Background Colors
   background: {
-    primary: 'bg-white',
-    secondary: 'bg-slate-50',
-    light: 'bg-gray-50',
+    primary: 'bg-[var(--bgColor-default)]',
+    secondary: 'bg-[var(--bgColor-muted)]',
+    light: 'bg-[var(--bgColor-muted)]',
+    inset: 'bg-[var(--bgColor-inset)]',
   },
 
   // Text Colors
   text: {
-    primary: 'text-slate-800',
-    secondary: 'text-slate-600',
-    muted: 'text-slate-500',
-    light: 'text-gray-500',
+    primary: 'text-[var(--fgColor-default)]',
+    secondary: 'text-[var(--fgColor-muted)]',
+    muted: 'text-[var(--fgColor-muted)]',
+    light: 'text-[var(--fgColor-muted)]',
+    accent: 'text-[var(--accent-fg)]',
   },
 
   // Border Colors
   border: {
-    primary: 'border-slate-200',
-    light: 'border-slate-100',
-    muted: 'border-gray-300',
+    primary: 'border-[var(--borderColor-default)]',
+    light: 'border-[var(--borderColor-muted)]',
+    muted: 'border-[var(--borderColor-default)]',
   },
 
-  // Visualization/Graph Colors (Tailwind classes)
+  // Visualization/Graph Colors (Tailwind classes for legend dots)
   visualization: {
-    folder: 'bg-amber-500',
-    file: 'bg-slate-500',
-    class: 'bg-pink-500',
-    function: 'bg-emerald-500',
+    folder: 'bg-[#9a6700]',
+    file: 'bg-[#59636e]',
+    class: 'bg-[#8250df]',
+    function: 'bg-[#1a7f37]',
   },
 
-  // Visualization/Graph Colors (hex values for D3/SVG rendering)
+  // Visualization/Graph Colors (hex values for D3/SVG rendering).
+  // Mid-tone Primer accents legible on both #fff and #0d1117 canvases.
   visualizationHex: {
-    DIRECTORY: '#f59e0b',
-    FILE: '#64748b',
-    CLASS: '#ec4899',
-    FUNCTION: '#10b981',
-    METHOD: '#10b981',
-    MODULE: '#6366f1',
+    DIRECTORY: '#9a6700',
+    FILE: '#59636e',
+    CLASS: '#8250df',
+    FUNCTION: '#1a7f37',
+    METHOD: '#1a7f37',
+    MODULE: '#0969da',
   },
 
   // Overlay/Alert Colors
   overlay: {
-    error: 'bg-red-50',
-    errorText: 'text-red-600',
-    loading: 'bg-white/80',
+    error: 'bg-[var(--danger-muted)]',
+    errorText: 'text-[var(--danger-fg)]',
+    loading: 'bg-[var(--bgColor-default)]/80',
   },
 
   // Interactive States
   interactive: {
-    accent: 'accent-indigo-500',
+    accent: 'accent-[#0969da]',
   },
 };

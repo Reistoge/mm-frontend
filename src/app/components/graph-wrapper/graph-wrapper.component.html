@@ -21,9 +21,7 @@
     </div>
 
     <details [class]="graphs.legend.divider">
-      <summary class="cursor-pointer select-none font-medium text-slate-600">
-        How to interact
-      </summary>
+      <summary class="cursor-pointer select-none font-medium">How to interact</summary>
       <div class="mt-1.5 space-y-1">
         <p><strong>Click a node</strong> to drill down (Expand).</p>
         <p><strong>Click a dashed circle</strong> to go up (Collapse).</p>
@@ -31,24 +29,29 @@
         <p><strong>Scroll</strong> to zoom in/out.</p>
       </div>
 
-      <div class="grid grid-cols-3 gap-1 mt-2 pt-2 border-t border-slate-100 w-full">
+      <div
+        class="grid grid-cols-3 gap-1 mt-2 pt-2 border-t border-[var(--borderColor-muted)] w-full"
+      >
         <button
           (click)="expandAll.emit()"
-          [class]="graphs.buttonGroup.expand + ' px-2 py-1 text-xs font-semibold rounded w-full'"
+          [class]="
+            graphs.buttonGroup.expand + ' px-2 py-[3px] text-xs font-medium rounded-md w-full'
+          "
         >
           Expand
         </button>
         <button
           (click)="stopExpansion.emit()"
-          [class]="graphs.buttonGroup.collapse + ' px-2 py-1 text-xs font-semibold rounded w-full'"
+          [class]="
+            graphs.buttonGroup.collapse + ' px-2 py-[3px] text-xs font-medium rounded-md w-full'
+          "
         >
           Stop
         </button>
         <button
           (click)="collapseAll.emit()"
           [class]="
-            graphs.buttonGroup.collapse +
-            ' bg-slate-800 px-2 py-1 text-xs font-semibold rounded w-full'
+            graphs.buttonGroup.collapse + ' px-2 py-[3px] text-xs font-medium rounded-md w-full'
           "
         >
           Collapse
@@ -59,9 +62,9 @@
         (click)="toggleParentText.emit()"
         [class]="
           (showParentText
-            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50') +
-          ' w-full mt-2 px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors'
+            ? 'bg-[var(--accent-emphasis)] text-white border-[var(--borderColor-default)]'
+            : 'bg-[var(--bgColor-default)] text-[var(--fgColor-default)] border-[var(--borderColor-default)] hover:bg-[var(--bgColor-muted)]') +
+          ' w-full mt-2 px-3 py-[5px] text-xs font-medium rounded-md border cursor-pointer transition-colors'
         "
       >
         {{ showParentText ? 'Hide' : 'Show' }} Parent Path
@@ -71,11 +74,12 @@
 
   <!-- Layout card: top-right -->
   <div
-    [class]="'absolute top-4 right-4 bg-white/90 backdrop-blur p-3 rounded-lg shadow-md border border-slate-200 z-10 w-40 transition-opacity duration-500'"
+    [class]="'absolute top-4 right-4 bg-[var(--bgColor-default)] p-3 rounded-md border border-[var(--borderColor-default)] z-10 w-40 transition-opacity duration-500'"
     [class.opacity-0]="isIdle()"
     [class.pointer-events-none]="isIdle()"
   >
     <div [class]="graphs.slider.label">
+      <span [class]="graphs.slider.labelText">Spacing</span>
       <span [class]="graphs.slider.labelValue">{{ separation }}×</span>
     </div>
     <input
@@ -95,14 +99,14 @@
 
   <!-- Download card: bottom-left -->
   <div
-    [class]="'absolute bottom-4 left-4 bg-white/90 backdrop-blur rounded-lg shadow-md border border-slate-200 z-10 flex transition-opacity duration-500'"
+    [class]="'absolute bottom-4 left-4 bg-[var(--bgColor-default)] rounded-md border border-[var(--borderColor-default)] z-10 flex transition-opacity duration-500'"
     [class.opacity-0]="isIdle()"
     [class.pointer-events-none]="isIdle()"
   >
     <button
       (click)="downloadSVG.emit()"
       title="Download SVG"
-      [class]="graphs.actions.button + ' rounded-r-none border-r-0'"
+      [class]="graphs.actions.button + ' rounded-r-none border-r-0 border-0'"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -123,7 +127,7 @@
     <button
       (click)="downloadPNG.emit()"
       title="Download PNG"
-      [class]="graphs.actions.button + ' rounded-l-none'"
+      [class]="graphs.actions.button + ' rounded-l-none border-0'"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -145,14 +149,14 @@
 
   <!-- Browse card: bottom-right -->
   <div
-    [class]="'absolute bottom-4 right-4 bg-white/90 backdrop-blur rounded-lg shadow-md border border-slate-200 z-10 flex transition-opacity duration-500'"
+    [class]="'absolute bottom-4 right-4 bg-[var(--bgColor-default)] rounded-md border border-[var(--borderColor-default)] z-10 flex transition-opacity duration-500'"
     [class.opacity-0]="isIdle()"
     [class.pointer-events-none]="isIdle()"
   >
     <button
       (click)="openTreeModal.emit()"
       title="Browse entities"
-      [class]="graphs.actions.button + ' rounded-r-none border-r-0'"
+      [class]="graphs.actions.button + ' rounded-r-none border-0'"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -169,7 +173,7 @@
     <button
       (click)="runScan.emit()"
       title="Run scanner"
-      [class]="graphs.actions.button + ' rounded-none border-r-0'"
+      [class]="graphs.actions.button + ' rounded-none border-0'"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -190,7 +194,7 @@
     <button
       (click)="openDetailsModal.emit()"
       title="Repository details"
-      [class]="graphs.actions.button + ' rounded-l-none'"
+      [class]="graphs.actions.button + ' rounded-l-none border-0'"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -214,7 +218,7 @@
 @if (loading) {
   <div [class]="graphs.state.loading.overlay">
     <div [class]="graphs.state.loading.spinner"></div>
-    <span [class]="graphs.state.loading.text">Calculating Layout...</span>
+    <span [class]="graphs.state.loading.text">Calculating layout…</span>
   </div>
 }
 

@@ -1,12 +1,12 @@
 /**
- * Typography Design System
- * Font sizes, weights, and text styles
+ * Typography Design System — GitHub Primer scale.
+ * Base 14px/20px, semibold headings, tabular-nums for metrics.
  */
 
 export const typography = {
   // Heading Sizes
   heading: {
-    xl: 'text-2xl font-bold',
+    xl: 'text-2xl font-semibold tracking-tight',
     lg: 'text-lg font-semibold',
     md: 'text-base font-semibold',
     sm: 'text-sm font-semibold',
@@ -15,14 +15,22 @@ export const typography = {
 
   // Body Text
   body: {
-    base: 'text-base',
+    base: 'text-sm',
     sm: 'text-sm',
     xs: 'text-xs',
   },
 
+  // Page / section titles (GitHub Pagehead)
+  pageTitle: 'text-xl font-semibold tracking-tight',
+  sectionTitle: 'text-sm font-semibold',
+
+  // KPI / metric numerals
+  kpiValue: 'text-2xl font-semibold tabular',
+  kpiLabel: 'text-xs font-medium uppercase tracking-wide',
+
   // Font Weights
   weight: {
-    bold: 'font-bold',
+    bold: 'font-semibold',
     semibold: 'font-semibold',
     medium: 'font-medium',
     normal: 'font-normal',

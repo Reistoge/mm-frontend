@@ -67,19 +67,18 @@ export class NodePopupComponent {
   @Input({ required: true }) node!: GraphNode;
   @Input({ required: true }) position!: { x: number; y: number };
 
-  popupCard = [
-    components.card.default,
-    spacing.padding.sm,
-    'shadow-xl border-slate-200 text-sm min-w-52 max-w-xs',
-  ].join(' ');
+  popupCard = [components.card.default, spacing.padding.sm, 'text-sm min-w-52 max-w-xs'].join(' ');
 
-  headerClass = 'flex items-center justify-between gap-2 pb-1 border-b border-slate-100';
-  titleClass = 'font-semibold text-slate-800 truncate';
-  typeClass = 'text-[10px] font-bold text-slate-400 uppercase shrink-0';
+  headerClass =
+    'flex items-center justify-between gap-2 pb-1 border-b border-[var(--borderColor-muted)]';
+  titleClass = 'font-semibold text-[var(--fgColor-default)] truncate';
+  typeClass = 'text-[10px] font-semibold text-[var(--fgColor-muted)] uppercase shrink-0';
   sectionClass = 'mt-2';
-  sectionTitleClass = 'text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1';
-  rowClass = 'flex items-center justify-between gap-3 py-0.5 text-xs text-slate-600';
-  emptyClass = 'mt-2 text-xs text-slate-400';
+  sectionTitleClass =
+    'text-[10px] font-semibold uppercase tracking-wide text-[var(--fgColor-muted)] mb-1';
+  rowClass =
+    'flex items-center justify-between gap-3 py-0.5 text-xs text-[var(--fgColor-muted)] tabular';
+  emptyClass = 'mt-2 text-xs text-[var(--fgColor-muted)]';
 
   get sections(): MetricSection[] {
     const m = this.node.metadata;
