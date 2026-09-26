@@ -72,6 +72,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
     position: { x: number; y: number };
   } | null>(null);
   private popupLink: RenderLink | null = null;
+  expandFlag = signal(false);
 
   /** Pinned node inspection popup, opened by clicking the lens icon. */
   readonly nodePopup = signal<{
@@ -97,6 +98,26 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   protected expandedNodes = new Set<string>();
   protected hiddenNodes = signal(new Set<string>());
   protected currentEnclosures: Enclosure[] = [];
+
+  /** When true, enclosure bubbles display the full recursive parent chain path stacked vertically. */
+  protected showNodeParentText = false;
+
+  /**
+   * Builds a recursive parent chain array for a node ID by walking parentId links.
+   * Returns e.g. ["Module", "Folder"] from root to the node's immediate parent.
+   */
+  protected getNodeParentText(nodeId: string): string[] {
+    const chain: string[] = [];
+    let curr = this.allNodesMap.get(nodeId);
+    while (curr && curr.parentId) {
+      const parentData = this.allNodesMap.get(curr.parentId);
+      if (parentData) {
+        chain.unshift(parentData.label);
+      }
+      curr = this.allNodesMap.get(curr.parentId);
+    }
+    return chain;
+  }
 
   // D3 objects
   protected simulation: d3.Simulation<RenderNode, RenderLink> | null = null;
@@ -268,10 +289,34 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   }
 
   /**
+   * Primer canvas colors for SVG elements (CSS vars don't apply inside D3 attrs).
+   * Reads `data-color-mode` so graphs match GitHub light/dark.
+   */
+  protected canvasColors(): {
+    halo: string;
+    label: string;
+    nodeStroke: string;
+    linkValue: string;
+    fallback: string;
+  } {
+    const dark =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-color-mode') === 'dark';
+    return {
+      halo: dark ? '#0d1117' : '#ffffff',
+      label: dark ? '#9198a1' : '#59636e',
+      nodeStroke: dark ? '#0d1117' : '#ffffff',
+      linkValue: dark ? '#f85149' : '#d1242c',
+      fallback: '#8b949e',
+    };
+  }
+
+  /**
    * Renders/updates link lines with color based on coupling intensity and value labels.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateLinksForView(layer: any) {
+    const cc = this.canvasColors();
     const linkGroups = layer
       .selectAll('g.link')
       .data(this.links, (d: RenderLink) => `${d.source.id}-${d.target.id}`);
@@ -285,15 +330,20 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .attr('dy', '-4')
       .style('font-size', '9px')
       .style('font-weight', 'bold')
-      .style('fill', '#ef4444')
+      .style('fill', cc.linkValue)
       .style('cursor', 'pointer')
       .style('paint-order', 'stroke')
-      .style('stroke', '#ffffff')
+      .style('stroke', cc.halo)
       .style('stroke-width', '2px')
       .on('click', (event: MouseEvent, d: RenderLink) => {
         this.handleEdgeClick(event, d);
+      })
+      .on('mouseover', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'underline');
+      })
+      .on('mouseout', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'none');
       });
-
     const merged = linkGroups.merge(linkEnter);
 
     merged
@@ -351,23 +401,23 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
             node.fy = null;
           }),
       )
-      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d))
-      .on('mouseenter', (e: MouseEvent, d: RenderNode) => {
-        this.hoveredNodeId = d.id;
-        this.cancelLensHide();
-        if (this.hasMetadata(d.data.metadata)) {
-          d3.select(e.currentTarget as SVGGElement)
-            .select('g.lens')
-            .style('display', null);
-        }
-      })
-      .on('mouseleave', () => this.scheduleLensHide());
+      .on('click', (e: MouseEvent, d: RenderNode) => this.handleNodeClick(e, d));
+    // .on('mouseenter', (e: MouseEvent, d: RenderNode) => {
+    //   this.hoveredNodeId = d.id;
+    //   this.cancelLensHide();
+    //   if (this.hasMetadata(d.data.metadata)) {
+    //     d3.select(e.currentTarget as SVGGElement)
+    //       .select('g.lens')
+    //       .style('display', null);
+    //   }
+    // })
+    // .on('mouseleave', () => this.scheduleLensHide());
 
     nodeEnter
       .append('circle')
       .attr('r', (d: RenderNode) => d.r)
       .attr('fill', (d: RenderNode) => d.color)
-      .attr('stroke', '#fff')
+      .attr('stroke', this.canvasColors().nodeStroke)
       .attr('stroke-width', D3_CONFIG.NODE.STROKE_WIDTH);
 
     nodeEnter
@@ -375,51 +425,55 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .text((d: RenderNode) => d.label)
       .attr('dy', (d: RenderNode) => d.r + 14)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#475569')
+      .attr('fill', this.canvasColors().label)
       .style('font-size', '10px')
-      .style('pointer-events', 'none');
-
+      .style('pointer-events', 'all')
+      .on('click', (event: MouseEvent, d: RenderNode) => {
+        event.stopPropagation();
+        this.toggleNodePopup(d);
+      })
+      .on('mouseover', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'underline');
+      })
+      .on('mouseout', (e: MouseEvent) => {
+        d3.select(e.currentTarget as SVGElement).style('text-decoration', 'none');
+      });
     // Lens icon shown on hover; click pins the node inspection popup.
-    const lensEnter = nodeEnter
-      .append('g')
-      .attr('class', 'lens')
-      .style('display', 'none')
-      .style('pointer-events', 'all');
+    // const lensEnter = nodeEnter
+    //   .append('g')
+    //   .attr('class', 'lens')
+    //   .style('display', 'none')
+    //   .style('pointer-events', 'all');
 
-    lensEnter
-      .append('circle')
-      .attr('r', 8)
-      .attr('fill', '#f8fafc')
-      .attr('stroke', '#94a3b8')
-      .attr('stroke-width', 1)
-      .style('cursor', 'pointer');
+    // lensEnter
+    //   .append('circle')
+    //   .attr('r', 8)
+    //   .attr('fill', '#f8fafc')
+    //   .attr('stroke', '#94a3b8')
+    //   .attr('stroke-width', 1)
+    //   .style('cursor', 'pointer');
 
-    lensEnter
-      .append('text')
-      .text('i')
-      .attr('text-anchor', 'middle')
-      .attr('dy', '0.35em')
-      .attr('font-size', '10px')
-      .attr('font-weight', 'bold')
-      .attr('fill', '#475569')
-      .style('pointer-events', 'none');
+    // lensEnter
+    //   .append('text')
+    //   .text('i')
+    //   .attr('text-anchor', 'middle')
+    //   .attr('dy', '0.35em')
+    //   .attr('font-size', '10px')
+    //   .attr('font-weight', 'bold')
+    //   .attr('fill', '#475569')
+    //   .style('pointer-events', 'none');
 
-    // Position the lens once next to the label's right edge (static per node).
-    lensEnter.each(function (this: SVGGElement, d: RenderNode) {
-      const parent = this.parentNode as SVGGElement;
-      const textEl = parent.querySelector('text') as SVGTextElement | null;
-      const tw = textEl ? textEl.getComputedTextLength() : 0;
-      d3.select(this).attr('transform', `translate(${tw / 2 + 8}, ${d.r + 9})`);
-    });
+    // // Position the lens once next to the label's right edge (static per node).
+    // lensEnter.each(function (this: SVGGElement, d: RenderNode) {
+    //   const parent = this.parentNode as SVGGElement;
+    //   const textEl = parent.querySelector('text') as SVGTextElement | null;
+    //   const tw = textEl ? textEl.getComputedTextLength() : 0;
+    //   d3.select(this).attr('transform', `translate(${tw / 2 + 8}, ${d.r + 9})`);
+    // });
 
-    lensEnter.on('click', (event: MouseEvent, d: RenderNode) => {
-      event.stopPropagation();
-      this.toggleNodePopup(d);
-    });
-
-    lensEnter
-      .on('mouseenter', () => this.cancelLensHide())
-      .on('mouseleave', () => this.scheduleLensHide());
+    // lensEnter
+    //   .on('mouseenter', () => this.cancelLensHide())
+    //   .on('mouseleave', () => this.scheduleLensHide());
 
     const merged = nodeSel
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -938,9 +992,12 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
   /**
    * Renders/updates enclosure (parent) bubbles with dashed stroke, label, and collapse-on-click.
+   * When showNodeParentText is true, renders the parent chain stacked vertically above the label.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected drawEnclosures(layer: any, enclosures: Enclosure[]) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     const sel = layer.selectAll('g.enclosure').data(enclosures, (d: Enclosure) => d.id);
 
     const enter = sel.enter().append('g').attr('class', 'enclosure');
@@ -961,8 +1018,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .attr('fill', (d: Enclosure) => d.color)
       .style('font-size', '11px')
       .style('font-weight', 'bold')
-      .style('pointer-events', 'none')
-      .style('text-transform', 'uppercase');
+      .style('pointer-events', 'none');
 
     const merged = sel.merge(enter);
 
@@ -974,9 +1030,45 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
 
     merged
       .select('text')
-      .text((d: Enclosure) => d.label)
       .attr('x', (d: Enclosure) => d.x)
-      .attr('y', (d: Enclosure) => d.y - d.r - 8);
+      .attr('y', (d: Enclosure) => {
+        const base = d.y - d.r - 8;
+        if (self.showNodeParentText) {
+          const numParents = self.getNodeParentText(d.id).length;
+          return base - numParents * 11;
+        }
+        return base;
+      })
+      .text(null)
+
+      .each(function (this: SVGTextElement, d: Enclosure) {
+        const textEl = d3.select(this);
+        textEl.selectAll('tspan').remove();
+
+        if (self.showNodeParentText) {
+          const chain = self.getNodeParentText(d.id);
+          const lines = [...chain, d.label];
+
+          lines.forEach((line: string, lineIdx: number) => {
+            const isLast = lineIdx === lines.length - 1;
+            const tspan = textEl.append('tspan').attr('x', d.x).text(line);
+
+            if (lineIdx === 0) {
+              tspan.attr('dy', 0);
+            } else {
+              tspan.attr('dy', 11);
+            }
+
+            if (!isLast) {
+              tspan.style('font-size', '8px').style('font-weight', 'normal');
+            } else {
+              tspan.style('font-size', '11px').style('font-weight', 'bold');
+            }
+          });
+        } else {
+          textEl.append('tspan').attr('x', d.x).text(d.label);
+        }
+      });
 
     sel.exit().remove();
   }
@@ -985,7 +1077,14 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Blends color from mid to red based on link value (capped at 10).
    */
   protected getLinkColor(value: number): string {
-    return D3ColorUtils.blendColors(D3_CONFIG.LINK.COLOR_MID, '#ef4444', Math.min(value / 10, 1));
+    const dark =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-color-mode') === 'dark';
+    return D3ColorUtils.blendColors(
+      D3_CONFIG.LINK.COLOR_MID,
+      dark ? '#f85149' : '#d1242c',
+      Math.min(value / 10, 1),
+    );
   }
 
   /**
@@ -1020,6 +1119,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Expands every expandable node in batches (5 per 500ms) for animated reveal.
    */
   expandAll() {
+    this.expandFlag.set(true);
     const nodesToExpand: string[] = [];
 
     this.allNodesMap.forEach((node) => {
@@ -1035,6 +1135,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       const batch = nodesToExpand.slice(i, i + batchSize);
 
       setTimeout(() => {
+        if (!this.expandFlag()) return;
         batch.forEach((nodeId) => {
           const nodeData = this.allNodesMap.get(nodeId);
           if (!nodeData) return;
@@ -1060,6 +1161,14 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       }, delay);
 
       delay += 500;
+    }
+  }
+  /**
+   * Stop the expansion by changing the value of expand signal see expandAll()
+   */
+  stopExpansion() {
+    if (this.expandFlag() == true) {
+      this.expandFlag.set(false);
     }
   }
 

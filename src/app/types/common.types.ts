@@ -97,7 +97,8 @@ export interface ErrorDetails {
   context?: Record<string, unknown>;
 }
 
-export type ReportKey = 'hierarchical-graph' | 'module-class-graph' | 'module-function-graph';
+export type ReportKey =
+  'hierarchical-graph' | 'inclusive-enclosure-graph' | 'exclusive-enclosure-graph';
 
 export interface ReportItem {
   key: ReportKey;

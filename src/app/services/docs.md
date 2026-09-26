@@ -110,7 +110,7 @@ This metric provides a **method-level dependency map** between classes to unders
 
 ### Use cases
 
-- Measure **class coupling** to assess maintainability and modularity.
+- Measure **Class Coupling** to assess maintainability and modularity.
 - Detect **fan-in hotspots** (methods heavily used by others) and **fan-out responsibilities** (methods calling many external methods).
 - Serves as input for higher-level analysis, such as **system complexity** or **dependency graphs**.
 

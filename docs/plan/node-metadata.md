@@ -65,7 +65,7 @@ afterward, so no per-tick cost.
 - `GraphWrapperComponent`: add `nodePopupData` input + `closeNodePopup` output;
   render `NodePopupComponent` beside `EdgePopupComponent` (fixed-position card,
   design-system classes).
-- All 3 graph templates (`hierarchical`, `module-class`, `module-function`) wire
+- All 3 graph templates (`hierarchical`, `inclusive-enclosure`, `exclusive-enclosure`) wire
   `[nodePopupData]="nodePopup()"` + `(closeNodePopup)="nodePopup.set(null)"`.
 
 ## 6. NodePopupComponent

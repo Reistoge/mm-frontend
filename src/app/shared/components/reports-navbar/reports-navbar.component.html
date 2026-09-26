@@ -1,30 +1,23 @@
-<div [class]="components.card.default">
-  <div [class]="'flex flex-wrap gap-2 items-center'">
+<nav [class]="components.tabNav.container" aria-label="Reports">
+  <button
+    type="button"
+    [class]="components.tabNav.item"
+    [attr.aria-selected]="selectedValue() === null"
+    (click)="toggle(null)"
+    title="Hide selected report"
+  >
+    Overview
+  </button>
+
+  @for (it of items; track it.key) {
     <button
       type="button"
-      [class]="
-        components.button.secondary +
-        (selectedValue() === null ? ' ' + components.button.neutralDark : '')
-      "
-      [ngClass]="selectedValue() === null ? '' : ''"
-      (click)="toggle(null)"
-      title="Ocultar reporte seleccionado"
-      [attr.aria-pressed]="selectedValue() === null"
+      [class]="components.tabNav.item"
+      [attr.aria-selected]="selectedValue() === it.key"
+      (click)="toggle(it.key)"
+      [title]="it.hint || it.label"
     >
-      Ninguno
+      {{ it.label }}
     </button>
-
-    @for (it of items; track it.key) {
-      <button
-        type="button"
-        [class]="components.button.secondary"
-        [ngClass]="selectedValue() === it.key ? 'bg-emerald-600 text-white border-emerald-600' : ''"
-        (click)="toggle(it.key)"
-        [title]="it.hint || it.label"
-        [attr.aria-pressed]="selectedValue() === it.key"
-      >
-        {{ it.label }}
-      </button>
-    }
-  </div>
-</div>
+  }
+</nav>

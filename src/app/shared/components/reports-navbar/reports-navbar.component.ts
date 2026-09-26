@@ -7,14 +7,13 @@ import {
   OnChanges,
   SimpleChanges,
 } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { components, colors, spacing } from '../../../design-system';
 import { ReportKey, ReportItem } from '../../../types/common.types';
 
 @Component({
   selector: 'app-reports-navbar',
   standalone: true,
-  imports: [NgClass],
+  imports: [],
   templateUrl: './reports-navbar.component.html',
 })
 /**
@@ -26,9 +25,9 @@ export class ReportsNavbarComponent implements OnChanges {
   colors = colors;
   spacing = spacing;
   @Input() items: ReportItem[] = [
-    { key: 'hierarchical-graph', label: 'Project summary' },
-    { key: 'module-class-graph', label: 'Module-class' },
-    { key: 'module-function-graph', label: 'Module-function' },
+    { key: 'hierarchical-graph', label: 'Hierarchical' },
+    { key: 'inclusive-enclosure-graph', label: 'Inclusive enclosure' },
+    { key: 'exclusive-enclosure-graph', label: 'Exclusive enclosure' },
   ];
 
   @Input() selected: ReportKey | null = null;

@@ -53,11 +53,11 @@ export const D3_CONFIG = {
     STROKE_OPACITY: 0.35,
   },
 
-  // Link visualization
+  // Link visualization (Primer muted gray; intensity blends toward danger red)
   LINK: {
     OPACITY: 0.6,
     ARROW_ID: 'arrowhead',
-    COLOR_MID: '#64748b',
+    COLOR_MID: '#8b949e',
   },
 
   // Node visualization
@@ -108,7 +108,7 @@ export class D3ColorUtils {
    * Get node color based on type
    */
   static getNodeColor(type: string): string {
-    return (D3_CONFIG.NODE.COLOR as Record<string, string>)[type] || '#94a3b8';
+    return (D3_CONFIG.NODE.COLOR as Record<string, string>)[type] || '#8b949e';
   }
 
   /**

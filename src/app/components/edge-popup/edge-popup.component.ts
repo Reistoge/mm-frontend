@@ -32,7 +32,7 @@ interface TypeBadge {
       <div [class]="flexBetween">
         <span [class]="labelClass">{{ metadata.sourceName }}</span>
         <svg
-          class="w-4 h-4 text-slate-400 mx-2 shrink-0"
+          class="w-4 h-4 text-[var(--fgColor-muted)] mx-2 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -83,16 +83,12 @@ export class EdgePopupComponent {
   @Input({ required: true }) metadata!: EdgeMetadata;
   @Input({ required: true }) position!: { x: number; y: number };
 
-  popupCard = [
-    components.card.default,
-    spacing.padding.sm,
-    'shadow-xl border-slate-200 text-sm max-w-xs',
-  ].join(' ');
+  popupCard = [components.card.default, spacing.padding.sm, 'text-sm max-w-xs'].join(' ');
 
   flexBetween = 'flex items-center justify-between';
-  labelClass = 'font-semibold text-slate-800 truncate max-w-[120px]';
+  labelClass = 'font-semibold text-[var(--fgColor-default)] truncate max-w-[120px]';
   badgeRow = 'flex items-center gap-2 mt-2';
-  detailRow = 'flex items-center gap-3 mt-1.5 text-slate-600';
+  detailRow = 'flex items-center gap-3 mt-1.5 text-[var(--fgColor-muted)]';
   detailItem = 'text-xs';
 
   get typeBadges(): TypeBadge[] {
@@ -101,21 +97,21 @@ export class EdgePopupComponent {
     const imports = counts[LinkTypeValues.IMPORTS] ?? 0;
     const calls = counts[LinkTypeValues.CALL] ?? 0;
     const instantiates = counts[LinkTypeValues.INSTANTIATE] ?? 0;
-    if (imports > 0) {
+    if (imports >= 0) {
       badges.push({
-        label: `${imports} import${imports > 1 ? 's' : ''}`,
+        label: `${imports} import${imports > 0 ? 's' : ''}`,
         class: this.badgeClass(LinkTypeValues.IMPORTS),
       });
     }
-    if (calls > 0) {
+    if (calls >= 0) {
       badges.push({
-        label: `${calls} call${calls > 1 ? 's' : ''}`,
+        label: `${calls} call${calls > 0 ? 's' : ''}`,
         class: this.badgeClass(LinkTypeValues.CALL),
       });
     }
-    if (instantiates > 0) {
+    if (instantiates >= 0) {
       badges.push({
-        label: `${instantiates} instantiate${instantiates > 1 ? 's' : ''}`,
+        label: `${instantiates} instantiate${instantiates > 0 ? 's' : ''}`,
         class: this.badgeClass(LinkTypeValues.INSTANTIATE),
       });
     }
@@ -127,11 +123,13 @@ export class EdgePopupComponent {
   }
 
   private badgeClass(type: string): string {
-    const colors: Record<string, string> = {
-      CALL: 'bg-emerald-100 text-emerald-700',
-      INSTANTIATE: 'bg-blue-100 text-blue-700',
-      IMPORTS: 'bg-amber-100 text-amber-700',
+    const badgeColors: Record<string, string> = {
+      CALL: 'bg-[var(--success-muted)] text-[var(--success-fg)] border border-[var(--borderColor-default)]',
+      INSTANTIATE:
+        'bg-[var(--accent-muted)] text-[var(--accent-fg)] border border-[var(--borderColor-default)]',
+      IMPORTS:
+        'bg-[var(--attention-muted)] text-[var(--attention-fg)] border border-[var(--borderColor-default)]',
     };
-    return `${colors[type] || 'bg-gray-100 text-gray-700'} text-xs font-bold px-2 py-0.5 rounded-full`;
+    return `${badgeColors[type] || 'bg-[var(--bgColor-muted)] text-[var(--fgColor-muted)] border border-[var(--borderColor-default)]'} text-xs font-medium px-2 py-0.5 rounded-full`;
   }
 }

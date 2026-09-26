@@ -2,15 +2,15 @@
 
 ## Tech Stack
 
-| Technology | Purpose |
-|---|---|
-| **Angular 19** (standalone, no NgModules) | Framework |
-| **TypeScript 5.6** (strict) | Language |
-| **Tailwind CSS 4.1** | Styling |
-| **D3.js 7.9** | Force-directed graph visualization |
-| **ECharts 6.0** | Metric bar charts |
-| **Angular Signals** | State management (no NgRx/Redux) |
-| **Angular Router** (hash-based) | Routing |
+| Technology                                | Purpose                            |
+| ----------------------------------------- | ---------------------------------- |
+| **Angular 19** (standalone, no NgModules) | Framework                          |
+| **TypeScript 5.6** (strict)               | Language                           |
+| **Tailwind CSS 4.1**                      | Styling                            |
+| **D3.js 7.9**                             | Force-directed graph visualization |
+| **ECharts 6.0**                           | Metric bar charts                  |
+| **Angular Signals**                       | State management (no NgRx/Redux)   |
+| **Angular Router** (hash-based)           | Routing                            |
 
 ## Project Layout
 
@@ -20,8 +20,8 @@ src/
     components/           # Graph components
       base-graph.component.ts        # Abstract D3 base (Template Method)
       hierarchical-graph/            # Full DIR→FILE→CLASS→FUNC tree
-      module-class-graph/            # Module→Class coupling view
-      module-function-graph/         # Module→Function coupling view
+      inclusive-enclosure-graph/            # Module→Inclusive Enclosure view
+      exclusive-enclosure-graph/         # Module→Exclusive Enclosure view
       graph-wrapper/                 # Visual wrapper (legend, controls, tree modal)
       graph-tree-modal/              # Searchable node tree
     services/
@@ -108,13 +108,14 @@ function/method views keep their links.
 
 `BaseGraphComponent` is an abstract class with 3 concrete subclasses:
 
-| Component | Shows | Physics Config | Overrides |
-|---|---|---|---|
-| `HierarchicalGraphComponent` | Full DIR→FILE→CLASS→FUNC tree | `HIERARCHICAL` | `filterNodesAndLinks` (standard) |
-| `ModuleClassGraphComponent` | Module→Class coupling | `MODULE_CLASS` | `filterNodesAndLinks` + custom `calculateEnclosures` (all descendants, not just direct children) |
-| `ModuleFunctionGraphComponent` | Module→Function coupling | `MODULE_FUNCTION` | `filterNodesAndLinks` (standard) |
+| Component                          | Shows                         | Physics Config    | Overrides                                                                                        |
+| ---------------------------------- | ----------------------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
+| `HierarchicalGraphComponent`       | Full DIR→FILE→CLASS→FUNC tree | `HIERARCHICAL`    | `filterNodesAndLinks` (standard)                                                                 |
+| `InclusiveEnclosureGraphComponent` | Module→Exclusive Enclosure    | `MODULE_CLASS`    | `filterNodesAndLinks` + custom `calculateEnclosures` (all descendants, not just direct children) |
+| `ExclusiveEnclosureGraphComponent` | Module→Function coupling      | `MODULE_FUNCTION` | `filterNodesAndLinks` (standard)                                                                 |
 
 Key customization points (abstract methods):
+
 - `getPhysicsConfig()` → charge, link distance, center, collide params
 - `getColorScheme()` → map NodeType → hex color
 - `getRadiusScheme()` → map NodeType → circle radius
@@ -126,7 +127,7 @@ Key customization points (abstract methods):
 User opens /repos/:id
   → RepoDetailPageComponent.load()
     → ReposService.getRepo(id)     — loads repo metadata
-  → User selects report type (hierarchical/module-class/module-function)
+  → User selects report type (hierarchical/inclusive-enclosure/exclusive-enclosure)
     → Shows corresponding graph component
 
 User clicks "Run Scan"
@@ -140,6 +141,7 @@ User clicks "Run Scan"
 ## State Management
 
 There is **no global store**. All state is component-local via Angular Signals:
+
 - `signal()` for mutable state (loading, error, selected report, scan version)
 - `computed()` for derived values
 - Services are **stateless** — they fetch-and-return via Observables
@@ -150,9 +152,9 @@ The `reloadTrigger` input on graph components is a `number` signal — increment
 
 Two view levels determine which links are shown in `rebuildLinks()`:
 
-| Visible Nodes | Links Shown |
-|---|---|
-| Only `DIRECTORY` nodes | `level === 'module'` (deduplicated module→module) |
+| Visible Nodes          | Links Shown                                           |
+| ---------------------- | ----------------------------------------------------- |
+| Only `DIRECTORY` nodes | `level === 'module'` (deduplicated module→module)     |
 | Any non-directory node | `!level \|\| level === 'file'` (individual file→file) |
 
 When a link endpoint is hidden (collapsed), `findVisible()` walks up the parent chain to the nearest
@@ -166,12 +168,14 @@ forward/reverse counts on bidirectional edges.
 ## Environment / Stub Mode
 
 `src/environments/environment.ts`:
+
 - `useStubs: true` → all metrics load from `/json/stub-data.json` instead of API
 - `apiBase: 'http://localhost:3000'` → backend URL
 
 ## Metrics Backend Documentation
 
 See `src/app/services/docs.md` for detailed metric specs:
+
 - `files` — array of file paths
 - `classes-per-file` — per-file class → method list
 - `class-coupling` — method fan-in/fan-out between classes

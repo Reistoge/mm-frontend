@@ -5,6 +5,6 @@ Bigger gap — plan features not implemented at all:
 
 - FUNCTION CLASS → FUNCTION FILE (class method calling a standalone function): no metric provides this; only NewExpression is scanned in AST bodies, not CallExpression. So CLASS→FILE edges (plan line 25) don't exist.
 - FILE → CLASS edges (plan line 27): function→class links are dropped at buildFileLevelCoupling (:632-655) since it only aggregates when both parents are FILE.
-- All MODULE→CLASS/→FUNCTION and CLASS/FUNCTION→MODULE relationships (plan lines 31-49): nothing implements them. buildModuleLevelCoupling only does DIRECTORY→DIRECTORY. The module-class-graph and module-function-graph components render the same tree as the hierarchical graph.
+- All MODULE→CLASS/→FUNCTION and CLASS/FUNCTION→MODULE relationships (plan lines 31-49): nothing implements them. buildModuleLevelCoupling only does DIRECTORY→DIRECTORY. The inclusive-enclosure-graph and exclusive-enclosure-graph components render the same tree as the hierarchical graph.
 - Function-level NewExpression→constructor INSTANTIATE only fires when the target class has an explicit constructor node (classes without constructors are missed).
   Side issues: metrics.types.ts:84-91 has 3 type errors under tsc --noEmit (won't fail ng build since the importer is unused). Also the graph opens showing only the root folder with zero edges (all links collapse to root) — can look "broken" until expanded.

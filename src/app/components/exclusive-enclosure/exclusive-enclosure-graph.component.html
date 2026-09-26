@@ -1,5 +1,5 @@
 <app-graph-wrapper
-  title="Module → Function Call Graph"
+  title="Exclusive enclosure"
   [legendItems]="legendItems"
   [loading]="loading()"
   [error]="error()"
@@ -9,10 +9,12 @@
   [hiddenNodes]="hiddenNodes()"
   [edgePopupData]="edgePopup()"
   [nodePopupData]="nodePopup()"
+  [showParentText]="showNodeParentText"
   (closeEdgePopup)="edgePopup.set(null)"
   (separationChange)="separation.set($event); updateSeparation($event)"
   (expandAll)="expandAll()"
   (collapseAll)="collapseAll()"
+  (stopExpansion)="stopExpansion()"
   (downloadSVG)="downloadSVG()"
   (downloadPNG)="downloadPNG()"
   (openTreeModal)="showTreeModal.set(true)"
@@ -20,6 +22,7 @@
   (runScan)="runScan.emit()"
   (treeNodeSelected)="onNodeSelected($event)"
   (closeTreeModal)="showTreeModal.set(false)"
+  (toggleParentText)="toggleParentText()"
 >
   <div #graphContainer [class]="graphs.container.inner"></div>
 </app-graph-wrapper>

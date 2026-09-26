@@ -32,11 +32,13 @@ export class GraphWrapperComponent implements OnDestroy {
   @Input() edgePopupData: { metadata: EdgeMetadata; position: { x: number; y: number } } | null =
     null;
   @Input() nodePopupData: { node: GraphNode; position: { x: number; y: number } } | null = null;
+  @Input() showParentText = false;
 
   @Output() separationChange = new EventEmitter<number>();
   @Output() closeEdgePopup = new EventEmitter<void>();
   @Output() expandAll = new EventEmitter<void>();
   @Output() collapseAll = new EventEmitter<void>();
+  @Output() stopExpansion = new EventEmitter<void>();
   @Output() downloadSVG = new EventEmitter<void>();
   @Output() downloadPNG = new EventEmitter<void>();
   @Output() openTreeModal = new EventEmitter<void>();
@@ -44,6 +46,7 @@ export class GraphWrapperComponent implements OnDestroy {
   @Output() runScan = new EventEmitter<void>();
   @Output() treeNodeSelected = new EventEmitter<string>();
   @Output() closeTreeModal = new EventEmitter<void>();
+  @Output() toggleParentText = new EventEmitter<void>();
 
   graphs = graphs;
   colors = colors;
