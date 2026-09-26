@@ -1,2 +1,105 @@
-/* You can add global styles to this file, and also import other style files */
 @import 'tailwindcss';
+
+/* Primer-based functional tokens (github.com look). Single source of truth.
+   Components consume these via var() so light/dark switch without `dark:` classes. */
+:root,
+[data-color-mode='light'] {
+  color-scheme: light;
+  --bgColor-default: #ffffff;
+  --bgColor-muted: #f6f8fa;
+  --bgColor-inset: #eff1f3;
+  --bgColor-emphasis: #24292f;
+  --header-bg: #24292f;
+  --header-fg: #ffffff;
+  --borderColor-default: #d0d7de;
+  --borderColor-muted: #d8dee4;
+  --fgColor-default: #1f2328;
+  --fgColor-muted: #59636e;
+  --fgColor-accent: #0969da;
+  --accent-fg: #0969da;
+  --accent-emphasis: #0969da;
+  --accent-muted: #ddf4ff;
+  --success-fg: #1a7f37;
+  --success-emphasis: #1f883d;
+  --success-muted: #dafbe1;
+  --danger-fg: #d1242c;
+  --danger-emphasis: #cf222e;
+  --danger-muted: #ffebe9;
+  --attention-fg: #eba924;
+  --attention-muted: #fff8c5;
+  --done-fg: #8250df;
+  --counter-bg: #59636e1f;
+  --canvas-overlay: #ffffff;
+  --shadow-floating: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
+
+[data-color-mode='dark'] {
+  color-scheme: dark;
+  --bgColor-default: #0d1117;
+  --bgColor-muted: #161b22;
+  --bgColor-inset: #010409;
+  --bgColor-emphasis: #6e7681;
+  --header-bg: #010409;
+  --header-fg: #f0f6fc;
+  --borderColor-default: #30363d;
+  --borderColor-muted: #21262d;
+  --fgColor-default: #e6edf3;
+  --fgColor-muted: #9198a1;
+  --fgColor-accent: #4493f8;
+  --accent-fg: #4493f8;
+  --accent-emphasis: #1f6feb;
+  --accent-muted: #0c2d6b;
+  --success-fg: #3fb950;
+  --success-emphasis: #238636;
+  --success-muted: #0f2d1b;
+  --danger-fg: #f85149;
+  --danger-emphasis: #da3633;
+  --danger-muted: #3c1414;
+  --attention-fg: #d29922;
+  --attention-muted: #3b2e0b;
+  --done-fg: #a371f7;
+  --counter-bg: #6e768166;
+  --canvas-overlay: #161b22;
+  --shadow-floating: 0 8px 24px rgba(1, 4, 9, 0.85);
+}
+
+html,
+body {
+  background-color: var(--bgColor-muted);
+  color: var(--fgColor-default);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* GitHub UnderlineNav active state helper */
+.UnderlineNav-item {
+  border-bottom: 2px solid transparent;
+}
+.UnderlineNav-item[aria-selected='true'] {
+  border-bottom-color: var(--accent-emphasis);
+  font-weight: 600;
+}
+
+/* Primer-like focus ring */
+:where(a, button, input):focus-visible {
+  outline: 2px solid var(--accent-fg);
+  outline-offset: 2px;
+}
+
+/* Thin scrollbars for panels, GitHub-style */
+:where(.overflow-y-auto, .overflow-auto)::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+:where(.overflow-y-auto, .overflow-auto)::-webkit-scrollbar-thumb {
+  background: var(--borderColor-default);
+  border-radius: 6px;
+}

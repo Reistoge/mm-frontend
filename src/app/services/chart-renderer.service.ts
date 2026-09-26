@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as echarts from 'echarts';
+import { getChartTheme } from '../config/chart-config';
 
 /**
  * Handles ECharts rendering for generic metrics data.
@@ -47,13 +48,40 @@ export class ChartRendererService {
         this.charts.set(chartKey, chart);
       }
 
-      // Configure chart
+      // Configure chart (GitHub Primer analytics theme, mode-aware)
+      const t = getChartTheme();
       chart.setOption({
-        tooltip: { trigger: 'axis' },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: t.tooltipBg,
+          borderColor: t.tooltipBorder,
+          textStyle: { color: t.tooltipText },
+        },
         grid: { left: 12, right: 12, top: 24, bottom: 48, containLabel: true },
-        xAxis: { type: 'category', data: names, axisLabel: { rotate: 45, fontSize: 10 } },
-        yAxis: { type: 'value' },
-        series: [{ type: 'bar', data: values }],
+        xAxis: {
+          type: 'category',
+          data: names,
+          axisLabel: { rotate: 0, fontSize: 11, color: t.axisLabel, hideOverlap: true },
+          axisLine: { lineStyle: { color: t.axisLine } },
+          axisTick: { show: false },
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: { color: t.axisLabel },
+          splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } },
+        },
+        series: [
+          {
+            type: 'bar',
+            data: values,
+            itemStyle: { color: t.series, borderRadius: [2, 2, 0, 0] },
+            emphasis: { itemStyle: { color: t.seriesEmphasis } },
+          },
+        ],
+        color: t.palette,
+        textStyle: {
+          fontFamily: "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",
+        },
       });
 
       this.ensureResizeListener();

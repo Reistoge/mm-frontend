@@ -1,43 +1,27 @@
 @if (isOpen) {
   <div
-    [class]="'fixed inset-0 z-50 ' + components.flex.center"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
     (click)="closed.emit()"
     (keydown.enter)="closed.emit()"
     tabindex="0"
     role="dialog"
+    aria-modal="true"
   >
     <div
-      [class]="
-        'relative w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl ' +
-        colors.neutral.bg +
-        ' ' +
-        spacing.radius.md +
-        ' border ' +
-        colors.border.primary +
-        ' ' +
-        spacing.margin.md
-      "
+      class="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-[var(--canvas-overlay)] rounded-xl border border-[var(--borderColor-default)] m-4"
+      style="box-shadow: var(--shadow-floating)"
       (click)="stopPropagation($event)"
       (keydown.enter)="stopPropagation($event)"
       tabindex="0"
     >
       <div
-        [class]="
-          components.flex.between +
-          ' px-5 ' +
-          spacing.paddingY.lg +
-          ' border-b ' +
-          colors.border.light
-        "
+        class="flex items-center justify-between px-4 py-3 border-b border-[var(--borderColor-muted)]"
       >
-        <h2 [class]="typography.heading.md + ' ' + colors.text.primary">Repository Details</h2>
+        <h2 class="text-sm font-semibold text-[var(--fgColor-default)]">Repository details</h2>
         <button
           (click)="closed.emit()"
-          [class]="
-            'p-1 ' +
-            spacing.radius.sm +
-            ' text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors'
-          "
+          aria-label="Close"
+          class="p-1 rounded-md text-[var(--fgColor-muted)] hover:text-[var(--fgColor-default)] hover:bg-[var(--bgColor-muted)] transition-colors"
         >
           <svg
             class="w-5 h-5"
@@ -50,126 +34,97 @@
           </svg>
         </button>
       </div>
-      <!-- aa -->
-      <div class="flex-1 overflow-y-auto px-5 py-4">
+      <div class="flex-1 overflow-y-auto px-4 py-4">
         @if (loading) {
-          <div [class]="colors.text.secondary + ' ' + spacing.marginBottom.lg">Cargando…</div>
+          <div class="text-sm text-[var(--fgColor-muted)] mb-4">Loading…</div>
         }
         @if (error) {
-          <div [class]="colors.danger.text + ' ' + spacing.marginBottom.lg">
+          <div
+            class="text-sm mb-4 px-3 py-2 rounded-md border border-[var(--borderColor-default)] bg-[var(--danger-muted)] text-[var(--danger-fg)]"
+          >
             {{ error }}
           </div>
         }
         @if (repo; as r) {
-          <!-- for some reason is not applying the grid-cols-2 -->
           <div
-            [class]="
-              colors.neutral.bg + ' rounded-2xl border flex flex-row gap-3 ' + spacing.padding.md
-            "
+            class="bg-[var(--bgColor-default)] rounded-md border border-[var(--borderColor-default)] flex flex-row gap-3 p-4"
           >
-            <div class="flex-1 flex flex-col gap-2">
-              <div class="text-lg font-semibold">{{ r.fullName || r.id }}</div>
-              <div class="text-xs text-gray-500 break-all">{{ r.codePath }}</div>
+            <div class="flex-1 flex flex-col gap-2 min-w-0">
+              <div class="text-[16px] font-semibold break-all">{{ r.fullName || r.id }}</div>
+              <div class="text-xs text-[var(--fgColor-muted)] font-mono break-all">
+                {{ r.codePath }}
+              </div>
 
-              <div [class]="spacing.marginTop.md">
+              <div class="mt-3">
                 @if (r.stats?.byExtension; as ext) {
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                     @for (k of objectKeys(ext); track k) {
                       <div
-                        [class]="
-                          colors.background.light +
-                          ' ' +
-                          spacing.radius.sm +
-                          ' ' +
-                          spacing.padding.xs
-                        "
+                        class="bg-[var(--bgColor-muted)] rounded-md border border-[var(--borderColor-muted)] px-2 py-1.5"
                       >
-                        <div [class]="colors.text.light">{{ k }}</div>
-                        <div [class]="typography.weight.semibold">{{ ext[k] }}</div>
+                        <div class="text-[var(--fgColor-muted)] font-mono">{{ k }}</div>
+                        <div class="font-semibold tabular">{{ ext[k] }}</div>
                       </div>
                     }
                     @if (objectKeys(ext).length === 0) {
-                      <div [class]="colors.text.light">—</div>
+                      <div class="text-[var(--fgColor-muted)]">—</div>
                     }
                   </div>
                 }
               </div>
 
               @if (r.scannedAt) {
-                <div [class]="spacing.marginTop.lg + ' text-xs ' + colors.text.light">
-                  Último scan: {{ r.scannedAt | date: 'short' }}
+                <div class="mt-4 text-xs text-[var(--fgColor-muted)]">
+                  Last scan: {{ r.scannedAt | date: 'short' }}
                 </div>
               }
 
-              <div [class]="'flex ' + spacing.gap.sm">
+              <div class="flex gap-2 mt-1">
                 <button
-                  [class]="components.button.success + ' disabled:opacity-60'"
+                  [class]="components.button.primarySmall + ' disabled:opacity-60'"
                   (click)="runScan.emit()"
                   [disabled]="loading"
                 >
-                  Ejecutar scanner
+                  Run scanner
                 </button>
               </div>
             </div>
             <div class="flex-">
               @if (scan; as s) {
-                <div class="mt-6" [class]="colors.neutral.bg + ' ' + spacing.padding.md">
-                  <div [class]="components.flex.between + ' ' + spacing.marginBottom.md">
-                    <h2 class="text-xl font-semibold">Resultado del scan</h2>
-                    <button
-                      [class]="'px-3 py-1.5 rounded-lg bg-gray-800 text-white hover:bg-black text-sm'"
-                      (click)="downloadScanJson.emit()"
-                    >
-                      Descargar JSON
+                <div class="mt-6 bg-[var(--bgColor-default)] p-4">
+                  <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold">Scan result</h2>
+                    <button [class]="components.button.secondary" (click)="downloadScanJson.emit()">
+                      Download JSON
                     </button>
                   </div>
 
-                  <div [class]="typography.body.sm + ' ' + colors.neutral.text">
-                    <div [class]="spacing.marginBottom.sm">
+                  <div class="text-sm text-[var(--fgColor-default)]">
+                    <div class="mb-2 font-mono text-xs break-all">
                       <strong>Repo ID:</strong> {{ s.repoId }}
                     </div>
-                    <div [class]="spacing.marginBottom.sm">
-                      <strong>Scanned At:</strong> {{ s.scannedAt | date: 'short' }}
+                    <div class="mb-2 text-xs">
+                      <strong>Scanned at:</strong> {{ s.scannedAt | date: 'short' }}
                     </div>
 
-                    <div class="grid md:grid-cols-3 gap-3">
+                    <div class="grid md:grid-cols-3 gap-2">
                       <div
-                        [class]="
-                          colors.background.light +
-                          ' ' +
-                          spacing.radius.md +
-                          ' ' +
-                          spacing.padding.sm
-                        "
+                        class="bg-[var(--bgColor-muted)] rounded-md border border-[var(--borderColor-muted)] p-3"
                       >
-                        <div [class]="colors.text.light + ' ' + typography.body.xs">Archivos</div>
-                        <div class="text-lg font-bold">{{ s.stats.files }}</div>
+                        <div class="text-xs text-[var(--fgColor-muted)]">Files</div>
+                        <div class="text-xl font-semibold tabular">{{ s.stats.files }}</div>
                       </div>
                       <div
-                        [class]="
-                          colors.background.light +
-                          ' ' +
-                          spacing.radius.md +
-                          ' ' +
-                          spacing.padding.sm
-                        "
+                        class="bg-[var(--bgColor-muted)] rounded-md border border-[var(--borderColor-muted)] p-3"
                       >
-                        <div [class]="colors.text.light + ' ' + typography.body.xs">Líneas</div>
-                        <div class="text-lg font-bold">{{ s.stats.lines }}</div>
+                        <div class="text-xs text-[var(--fgColor-muted)]">Lines</div>
+                        <div class="text-xl font-semibold tabular">{{ s.stats.lines }}</div>
                       </div>
                       <div
-                        [class]="
-                          colors.background.light +
-                          ' ' +
-                          spacing.radius.md +
-                          ' ' +
-                          spacing.padding.sm
-                        "
+                        class="bg-[var(--bgColor-muted)] rounded-md border border-[var(--borderColor-muted)] p-3"
                       >
-                        <div [class]="colors.text.light + ' ' + typography.body.xs">
-                          Imports / Exports
-                        </div>
-                        <div class="text-lg font-bold">
+                        <div class="text-xs text-[var(--fgColor-muted)]">Imports / Exports</div>
+                        <div class="text-xl font-semibold tabular">
                           {{ s.stats.imports }} / {{ s.stats.exports }}
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 /**
- * Spacing Design System
- * Padding, margin, gap, and border radius values
+ * Spacing Design System — GitHub Primer scale.
+ * 4px base, 6px radius (Primer default), 12px for dialogs.
  */
 
 export const spacing = {
@@ -23,8 +23,8 @@ export const spacing = {
 
   // Padding Y (vertical)
   paddingY: {
-    xs: 'py-1.5',
-    sm: 'py-2',
+    xs: 'py-1',
+    sm: 'py-[5px]',
     md: 'py-3',
     lg: 'py-4',
   },
@@ -64,11 +64,11 @@ export const spacing = {
     xl: 'gap-6',
   },
 
-  // Border Radius
+  // Border Radius (Primer: 6px default, 12px dialog)
   radius: {
-    sm: 'rounded-lg',
-    md: 'rounded-xl',
-    lg: 'rounded-2xl',
+    sm: 'rounded-md',
+    md: 'rounded-md',
+    lg: 'rounded-xl',
     full: 'rounded-full',
   },
 };

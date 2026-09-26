@@ -289,10 +289,34 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
   }
 
   /**
+   * Primer canvas colors for SVG elements (CSS vars don't apply inside D3 attrs).
+   * Reads `data-color-mode` so graphs match GitHub light/dark.
+   */
+  protected canvasColors(): {
+    halo: string;
+    label: string;
+    nodeStroke: string;
+    linkValue: string;
+    fallback: string;
+  } {
+    const dark =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-color-mode') === 'dark';
+    return {
+      halo: dark ? '#0d1117' : '#ffffff',
+      label: dark ? '#9198a1' : '#59636e',
+      nodeStroke: dark ? '#0d1117' : '#ffffff',
+      linkValue: dark ? '#f85149' : '#d1242c',
+      fallback: '#8b949e',
+    };
+  }
+
+  /**
    * Renders/updates link lines with color based on coupling intensity and value labels.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateLinksForView(layer: any) {
+    const cc = this.canvasColors();
     const linkGroups = layer
       .selectAll('g.link')
       .data(this.links, (d: RenderLink) => `${d.source.id}-${d.target.id}`);
@@ -306,10 +330,10 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .attr('dy', '-4')
       .style('font-size', '9px')
       .style('font-weight', 'bold')
-      .style('fill', '#ef4444')
+      .style('fill', cc.linkValue)
       .style('cursor', 'pointer')
       .style('paint-order', 'stroke')
-      .style('stroke', '#ffffff')
+      .style('stroke', cc.halo)
       .style('stroke-width', '2px')
       .on('click', (event: MouseEvent, d: RenderLink) => {
         this.handleEdgeClick(event, d);
@@ -393,7 +417,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .append('circle')
       .attr('r', (d: RenderNode) => d.r)
       .attr('fill', (d: RenderNode) => d.color)
-      .attr('stroke', '#fff')
+      .attr('stroke', this.canvasColors().nodeStroke)
       .attr('stroke-width', D3_CONFIG.NODE.STROKE_WIDTH);
 
     nodeEnter
@@ -401,7 +425,7 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
       .text((d: RenderNode) => d.label)
       .attr('dy', (d: RenderNode) => d.r + 14)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#475569')
+      .attr('fill', this.canvasColors().label)
       .style('font-size', '10px')
       .style('pointer-events', 'all')
       .on('click', (event: MouseEvent, d: RenderNode) => {
@@ -1053,7 +1077,14 @@ export abstract class BaseGraphComponent implements OnInit, OnDestroy, OnChanges
    * Blends color from mid to red based on link value (capped at 10).
    */
   protected getLinkColor(value: number): string {
-    return D3ColorUtils.blendColors(D3_CONFIG.LINK.COLOR_MID, '#ef4444', Math.min(value / 10, 1));
+    const dark =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-color-mode') === 'dark';
+    return D3ColorUtils.blendColors(
+      D3_CONFIG.LINK.COLOR_MID,
+      dark ? '#f85149' : '#d1242c',
+      Math.min(value / 10, 1),
+    );
   }
 
   /**

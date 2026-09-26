@@ -1,13 +1,32 @@
-<div class="mx-auto p-6">
-  <a routerLink="/repos" class="text-sm text-blue-600 hover:underline">← Volver</a>
+<div class="max-w-[1280px] mx-auto px-6 py-6">
+  <!-- Breadcrumb -->
+  <nav class="text-sm mb-3 flex items-center gap-1.5" aria-label="Breadcrumb">
+    <a routerLink="/repos" class="text-[var(--accent-fg)] hover:underline">Repositories</a>
+    <span class="text-[var(--fgColor-muted)]">/</span>
+    <span class="font-semibold truncate">{{ repo()?.fullName || repo()?.id || '…' }}</span>
+  </nav>
 
-  <!-- Metrics Tabs Component -->
+  <!-- Pagehead -->
+  @if (repo(); as r) {
+    <div
+      class="flex flex-wrap items-center gap-3 pb-4 mb-0 border-b border-[var(--borderColor-default)]"
+    >
+      <h1 class="text-xl font-semibold tracking-tight break-all">{{ r.fullName || r.id }}</h1>
+      <span [class]="components.label">Private</span>
+      @if (r.scannedAt) {
+        <span class="text-xs text-[var(--fgColor-muted)]"
+          >Last scan: {{ r.scannedAt | date: 'short' }}</span
+        >
+      }
+    </div>
+  }
 
-  <div class="my-3">
+  <!-- UnderlineNav reports -->
+  <div class="mt-0 mb-4">
     <app-reports-navbar [(selected)]="selectedReport"> </app-reports-navbar>
   </div>
   @if (selectedReport(); as rSel) {
-    <div class="my-6">
+    <div class="mt-4">
       @switch (rSel) {
         @case ('hierarchical-graph') {
           <app-hierarchical-graph
@@ -37,6 +56,15 @@
           </app-exclusive-enclosure-graph>
         }
       }
+    </div>
+  } @else {
+    <div
+      class="mt-4 p-8 text-center bg-[var(--bgColor-default)] rounded-md border border-[var(--borderColor-default)]"
+    >
+      <div class="text-sm font-semibold">Select a report above</div>
+      <div class="text-sm text-[var(--fgColor-muted)] mt-1">
+        Hierarchical, inclusive, or exclusive enclosure graph.
+      </div>
     </div>
   }
 </div>

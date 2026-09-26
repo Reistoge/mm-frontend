@@ -90,7 +90,7 @@ export class GraphTreeModalComponent {
   }
 
   getNodeColor(type: string): string {
-    return (colors.visualizationHex as Record<string, string>)[type] || '#999';
+    return (colors.visualizationHex as Record<string, string>)[type] || '#8b949e';
   }
   isNodeHidden(id: string): boolean {
     return this.hiddenNodeIds.has(id);
