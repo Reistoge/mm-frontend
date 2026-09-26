@@ -3,8 +3,10 @@
  * Flat axes, Primer grays, single accent series. Theme-aware via getChartTheme().
  */
 
+/** Color mode the chart theme resolves against; mirrors `data-color-mode`. */
 export type ChartMode = 'light' | 'dark';
 
+/** Resolved Primer-derived palette for canvas rendering (ECharts can't read CSS vars). */
 export interface ChartTheme {
   tooltipBg: string;
   tooltipBorder: string;

@@ -12,13 +12,16 @@ const STORAGE_KEY = 'mm-theme';
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
+  /** User's stored preference; `system` follows the OS color scheme. */
   readonly choice = signal<ThemeChoice>(this.readStored());
+  /** Live OS dark-mode state; updates when the OS scheme changes. */
   readonly systemDark = signal(
     typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches,
   );
 
+  /** Resolved mode after applying the `system` fallback; drives `data-color-mode`. */
   readonly effectiveMode = computed<EffectiveTheme>(() => {
     const c = this.choice();
     if (c === 'light') return 'light';
@@ -42,14 +45,17 @@ export class ThemeService {
     });
   }
 
+  /** Persists the user's color-mode preference and updates the document. */
   set(choice: ThemeChoice): void {
     this.choice.set(choice);
   }
 
+  /** Flips between light and dark, resolving `system` to its effective mode first. */
   toggle(): void {
     this.set(this.effectiveMode() === 'dark' ? 'light' : 'dark');
   }
 
+  /** True when the resolved mode is dark (for canvas code that can't use CSS vars). */
   isDark(): boolean {
     return this.effectiveMode() === 'dark';
   }
